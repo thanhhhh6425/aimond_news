@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}UCL Bracket{% endblock %}
+{% block content %}
+<section class="section container" style="padding-top:90px;max-width:1400px">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px">
+    <h1 class="section-title" style="margin:0; font-family:var(--font-display); color:white;">UCL — Nhánh Đấu Loại Trực Tiếp</h1>
+    <div style="display:flex;gap:8px" id="stage-tabs">
+      <button class="btn btn-primary btn-sm" data-stage="all" style="font-family:var(--font-display)">Tất cả</button>
+      <button class="btn btn-ghost  btn-sm" data-stage="playoff" style="font-family:var(--font-display)">Playoff</button>
+      <button class="btn btn-ghost  btn-sm" data-stage="1/8" style="font-family:var(--font-display)">Vòng 1/8</button>
+      <button class="btn btn-ghost  btn-sm" data-stage="1/4" style="font-family:var(--font-display)">Tứ kết</button>
+      <button class="btn btn-ghost  btn-sm" data-stage="1/2" style="font-family:var(--font-display)">Bán kết</button>
+      <button class="btn btn-ghost  btn-sm" data-stage="final" style="font-family:var(--font-display)">Chung kết</button>
+    </div>
+  </div>
+
+  <div id="bracket-wrap"></div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  let allRounds = [];
+  let activeStage = "all";
+
+  // Số lượng cặp đấu chuẩn cho từng vòng
+  const STAGE_COUNTS = { "playoff": 8, "1/8": 8, "1/4": 4, "1/2": 2, "final": 1 };
+
+  function fmtDate(iso) {
+    if (!iso) return "TBA";
+    // Định dạng: 20:00 25/02
+    const d = new Date(iso);
+    return d.toLocaleTimeString("vi-VN", {hour: '2-digit', minute:'2-digit', hour12: false}) +
+           " " + d.toLocaleDateString("vi-VN", {day:"2-digit", month:"2-digit"});
+  }
+
+  function teamBadge(badge, name, size=24) {
+    return badge
+      ? `<img src="${badge}" width="${size}" height="${size}" style="object-fit:contain;flex-shrink:0" onerror="this.style.opacity=0">`
+      : `<span style="width:${size}px;height:${size}px;display:inline-block;background:var(--color-surface-3);border-radius:50%"></span>`;
+  }
+
+  function renderMatchup(mu, stageLabel) {
+    const isDone = mu.agg_home != null && mu.agg_away != null;
+    const isFinal = stageLabel.toLowerCase().includes("chung kết") || stageLabel.toLowerCase() === "final";
+    const requiredLegs = isFinal ? 1 : 2;
+
+    const legs = [];
+    for (let i = 0; i < requiredLegs; i++) {
+      if (mu.matches && mu.matches[i]) {
+        legs.push(mu.matches[i]);
+      } else {
+        const isLeg1 = i === 0;
+        // Mock dữ liệu: Lượt 2 đảo ngược sân nhà
+        legs.push({
+          home_id: isLeg1 ? mu.home_id : mu.away_id,
+          home_name: isLeg1 ? (mu.home_name || "TBD") : (mu.away_name || "TBD"),
+          home_short: isLeg1 ? mu.home_short : mu.away_short,
+          away_id: isLeg1 ? mu.away_id : mu.home_id,
+          away_name: isLeg1 ? (mu.away_name || "TBD") : (mu.home_name || "TBD"),
+          away_short: isLeg1 ? mu.away_short : mu.home_short,
+          home_score: null, away_score: null,
+          kickoff: null
+        });
+      }
+    }
+
+    const legsHtml = legs.map((m, idx) => {
+      const hasScore = m.home_score != null;
+      return `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;
+                    border-top:1px solid var(--color-border);font-size:.78rem;gap:8px; opacity:${hasScore?'1':'.6'}">
+          <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0">
+            ${teamBadge(m.home_id ? `https://images.fotmob.com/image_resources/logo/teamlogo/${m.home_id}_small.png` : null, m.home_name, 18)}
+            <span style="font-family:var(--font-display);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:white;">${m.home_short||m.home_name}</span>
+          </div>
+          <div style="text-align:center;min-width:85px;flex-shrink:0">
+            ${hasScore
+              ? `<span style="font-family:var(--font-display);font-weight:900;font-size:.95rem;color:white">${m.home_score} - ${m.away_score}</span>`
+              : `<span style="color:var(--color-text-muted);font-size:.68rem;font-family:var(--font-display);font-weight:700;">${fmtDate(m.kickoff)}</span>`
+            }
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;justify-content:flex-end">
+            <span style="font-family:var(--font-display);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right;color:white;">${m.away_short||m.away_name}</span>
+            ${teamBadge(m.away_id ? `https://images.fotmob.com/image_resources/logo/teamlogo/${m.away_id}_small.png` : null, m.away_name, 18)}
+          </div>
+        </div>`;
+    }).join("");
+
+    const homeName = mu.tbd_home ? "TBD" : (mu.home_name || "TBD");
+    const awayName = mu.tbd_away ? "TBD" : (mu.away_name || "TBD");
+
+    return `
+      <div class="card" style="overflow:hidden;border:1px solid var(--color-border)">
+        <div style="padding:12px 16px;background:var(--color-surface-2);display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:.7rem;color:var(--color-accent);font-weight:700;text-transform:uppercase;font-family:var(--font-display);">${stageLabel}</span>
+          ${isDone ? `<span style="font-size:.72rem;color:var(--color-text-muted);font-family:var(--font-display);">Tổng: <strong style="color:white">${mu.agg_home} - ${mu.agg_away}</strong></span>` : ""}
+        </div>
+        <div style="padding:16px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center">
+            ${teamBadge(mu.home_badge, homeName, 40)}
+            <span style="font-family:var(--font-display);font-weight:800;font-size:.82rem;color:white;">${homeName}</span>
+          </div>
+          <div style="text-align:center">
+            ${isDone
+              ? `<div style="font-family:var(--font-display);font-size:1.6rem;font-weight:900;color:white;">${mu.agg_home} - ${mu.agg_away}</div>`
+              : `<div style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;color:var(--color-text-muted)">VS</div>`
+            }
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center">
+            ${teamBadge(mu.away_badge, awayName, 40)}
+            <span style="font-family:var(--font-display);font-weight:800;font-size:.82rem;color:white;">${awayName}</span>
+          </div>
+        </div>
+        ${legsHtml}
+      </div>`;
+  }
+
+  function render(stage) {
+    const wrap = document.getElementById("bracket-wrap");
+    const rounds = stage === "all" ? allRounds : allRounds.filter(r => r.stage === stage);
+
+    if (!rounds.length) {
+      wrap.innerHTML = `<div class="card" style="padding:40px;text-align:center;color:var(--color-text-muted);font-family:var(--font-display);">Chưa có dữ liệu.</div>`;
+      return;
+    }
+
+    wrap.innerHTML = rounds.map(rnd => {
+      let matchups = rnd.matchups || [];
+      if (matchups.length === 0) {
+        const count = STAGE_COUNTS[rnd.stage] || 0;
+        matchups = Array(count).fill({ tbd_home: true, tbd_away: true, home_name: "TBD", away_name: "TBD", matches: [] });
+      }
+
+      const grid = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
+        ${matchups.map(mu => renderMatchup(mu, rnd.label)).join("")}
+      </div>`;
+
+      return `<div style="margin-bottom:36px">
+        <h2 style="font-family:var(--font-display);font-size:1rem;font-weight:900;text-transform:uppercase;
+                   color:var(--color-accent);margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--color-accent)">
+          ${rnd.label}
+        </h2>
+        ${grid}
+      </div>`;
+    }).join("");
+  }
+
+  async function load() {
+    document.getElementById("bracket-wrap").innerHTML =
+      Array(4).fill('<div class="skeleton" style="height:200px;border-radius:12px"></div>').join("");
+
+    try {
+      const res  = await fetch("/api/matches/bracket?league=UCL");
+      const data = await res.json();
+      allRounds = data.rounds || [];
+      render(activeStage);
+    } catch(e) {
+      document.getElementById("bracket-wrap").innerHTML = `<div class="card" style="padding:40px;text-align:center;color:var(--color-text-muted)">Lỗi kết nối.</div>`;
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    load();
+    document.getElementById("stage-tabs").addEventListener("click", e => {
+      const btn = e.target.closest("[data-stage]"); if (!btn) return;
+      activeStage = btn.dataset.stage;
+      document.querySelectorAll("[data-stage]").forEach(b => { b.classList.remove("btn-primary"); b.classList.add("btn-ghost"); });
+      btn.classList.add("btn-primary"); btn.classList.remove("btn-ghost");
+      render(activeStage);
+    });
+  });
+})();
+</script>
+{% endblock %}

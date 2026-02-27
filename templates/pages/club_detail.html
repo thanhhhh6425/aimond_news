@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Câu lạc bộ{% endblock %}
+{% block content %}
+<div style="padding-top:var(--header-height)">
+  <div id="club-hero" style="background:linear-gradient(135deg,var(--color-primary-dark),var(--color-primary));padding:40px 0;transition:background .4s">
+    <div class="container" style="display:flex;align-items:center;gap:28px;flex-wrap:wrap">
+      <img id="club-badge" src="" width="100" height="100" style="object-fit:contain" onerror="this.style.opacity=0">
+      <div>
+        <h1 id="club-name" style="font-size:clamp(2rem,5vw,3.5rem);color:white;margin-bottom:8px"></h1>
+        <div id="club-meta" style="display:flex;gap:10px;flex-wrap:wrap"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section container" style="display:grid;grid-template-columns:2fr 1fr;gap:28px;align-items:start">
+    <!-- Squad theo vi tri -->
+    <div>
+      <h2 class="section-title" style="font-size:1.2rem;margin-bottom:20px">Đội hình</h2>
+      <div id="club-squad"></div>
+    </div>
+    <!-- Thong tin CLB -->
+    <div>
+      <div class="card" style="padding:20px">
+        <h3 style="font-family:var(--font-display);font-size:1rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;margin-bottom:16px">Thông tin CLB</h3>
+        <div id="club-info" style="display:flex;flex-direction:column;gap:10px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const clubId = {{ club_id }};
+  const league = Theme.getLeague();
+
+  // Load club detail
+  const res = await API.clubs.detail(clubId, { players: "true" });
+  if (!res.ok) {
+    document.getElementById("club-name").textContent = "Không tìm thấy CLB";
+    return;
+  }
+  const c = res.data;
+  document.title = (c.name || "CLB") + " — AimondNews";
+
+  // Badge - thu nhieu URL khac nhau
+  const badge = document.getElementById("club-badge");
+  if (c.badge_url) {
+    badge.src = c.badge_url;
+  } else if (c.source_id) {
+    badge.src = `https://images.fotmob.com/image_resources/logo/teamlogo/${c.source_id}_small.png`;
+  }
+
+  document.getElementById("club-name").textContent = c.name || "";
+  document.getElementById("club-meta").innerHTML = [
+    c.country   && `<span class="badge" style="background:rgba(255,255,255,.15);color:white">${UI.escapeHtml(c.country)}</span>`,
+    c.founded   && `<span class="badge" style="background:rgba(255,255,255,.15);color:white">Est. ${c.founded}</span>`,
+  ].filter(Boolean).join("");
+
+  document.getElementById("club-info").innerHTML = [
+    c.stadium_name     && `<div style="display:flex;justify-content:space-between;font-size:.85rem;border-bottom:1px solid var(--color-border);padding-bottom:8px"><span style="color:var(--color-text-muted)">Sân</span><strong>${UI.escapeHtml(c.stadium_name)}</strong></div>`,
+    c.stadium_capacity && `<div style="display:flex;justify-content:space-between;font-size:.85rem;border-bottom:1px solid var(--color-border);padding-bottom:8px"><span style="color:var(--color-text-muted)">Sức chứa</span><strong>${c.stadium_capacity.toLocaleString()}</strong></div>`,
+    c.stadium_city     && `<div style="display:flex;justify-content:space-between;font-size:.85rem"><span style="color:var(--color-text-muted)">Thành phố</span><strong>${UI.escapeHtml(c.stadium_city)}</strong></div>`,
+  ].filter(Boolean).join("");
+
+  // Sap xep cau thu theo vi tri + so ao
+  const POS_ORDER = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
+  const POS_LABEL = { GK: "Thủ môn", DEF: "Hậu vệ", MID: "Tiền vệ", FWD: "Tiền đạo" };
+  const players = (c.players || []).sort((a, b) => {
+    const pa = POS_ORDER[a.position] ?? 9;
+    const pb = POS_ORDER[b.position] ?? 9;
+    if (pa !== pb) return pa - pb;
+    return (a.shirt_number || 99) - (b.shirt_number || 99);
+  });
+
+  // Nhom theo vi tri
+  const groups = {};
+  for (const p of players) {
+    const pos = p.position || "FWD";
+    if (!groups[pos]) groups[pos] = [];
+    groups[pos].push(p);
+  }
+
+  const squadHtml = Object.entries(groups).map(([pos, plist]) => `
+    <div style="margin-bottom:24px">
+      <h3 style="font-family:var(--font-display);font-size:.85rem;font-weight:800;text-transform:uppercase;
+                 letter-spacing:.08em;color:var(--color-accent);margin-bottom:12px;
+                 border-bottom:2px solid var(--color-accent);padding-bottom:6px">
+        ${POS_LABEL[pos] || pos}
+      </h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px">
+        ${plist.map(p => `
+          <a href="/players/${p.id}" class="card" style="padding:12px;text-align:center;display:block;cursor:pointer;text-decoration:none;position:relative">
+            ${p.shirt_number ? `<span style="position:absolute;top:6px;left:8px;font-family:var(--font-display);font-weight:900;font-size:.75rem;color:var(--color-accent)">#${p.shirt_number}</span>` : ""}
+            <img src="${p.photo_url||""}" width="52" height="52"
+                 style="border-radius:50%;object-fit:cover;background:var(--color-surface-3);margin:0 auto 8px;display:block"
+                 onerror="this.style.opacity=.3">
+            <p style="font-family:var(--font-display);font-size:.75rem;font-weight:800;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              ${UI.escapeHtml((p.name||"").split(" ").slice(-1)[0])}
+            </p>
+            ${p.nationality ? `<p style="font-size:.65rem;color:var(--color-text-muted)">${UI.escapeHtml(p.nationality)}</p>` : ""}
+          </a>`).join("")}
+      </div>
+    </div>`).join("") || `<p style="color:var(--color-text-muted);font-size:.85rem">Chưa có dữ liệu đội hình.</p>`;
+
+  document.getElementById("club-squad").innerHTML = squadHtml;
+});
+</script>
+{% endblock %}

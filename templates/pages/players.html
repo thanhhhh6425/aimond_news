@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}Cầu thủ{% endblock %}
+{% block content %}
+<section class="section container" style="padding-top:90px">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px">
+    <h1 class="section-title" style="margin:0; font-family:var(--font-display); color: white;">Cầu Thủ — <span id="league-label">Premier League</span></h1>
+    <div style="position:relative;width:220px">
+      <input id="search-input" type="text" placeholder="Tìm cầu thủ..." style="width:100%;padding:8px 12px 8px 36px;border-radius:20px;border:1px solid var(--color-border);background:var(--color-surface-2);color:white;font-size:.85rem;font-family:var(--font-display)">
+      <div id="search-results" style="display:none;position:absolute;top:calc(100%+4px);left:0;right:0;background:var(--color-surface-2);border:1px solid var(--color-border);border-radius:12px;z-index:100;overflow:hidden"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px" id="pos-tabs">
+    <button class="btn btn-primary btn-sm" data-pos="" style="font-family:var(--font-display)">Tất cả</button>
+    <button class="btn btn-ghost  btn-sm" data-pos="GK" style="font-family:var(--font-display)">Thủ môn</button>
+    <button class="btn btn-ghost  btn-sm" data-pos="DEF" style="font-family:var(--font-display)">Hậu vệ</button>
+    <button class="btn btn-ghost  btn-sm" data-pos="MID" style="font-family:var(--font-display)">Tiền vệ</button>
+    <button class="btn btn-ghost  btn-sm" data-pos="FWD" style="font-family:var(--font-display)">Tiền đạo</button>
+  </div>
+
+  <div id="players-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px"></div>
+
+  <div style="text-align:center;margin-top:24px">
+    <button id="load-more" class="btn btn-ghost" style="display:none;font-family:var(--font-display); color: white;">Xem thêm</button>
+    <p id="no-more" style="display:none;color:white;font-size:.82rem;font-family:var(--font-display)">Đã hiển thị tất cả</p>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  let league = "PL", position = "", page = 1, totalPages = 1, loading = false;
+  const PER = 48;
+
+  function flagUrl(code) {
+    if (!code) return "";
+    const c = code.toLowerCase().trim();
+    const map3to2 = {
+      "eng":"gb-eng","sco":"gb-sct","wal":"gb-wls","nir":"gb-nir","kor":"kr","jpn":"jp","usa":"us","bra":"br","arg":"ar","fra":"fr","ger":"de","esp":"es","por":"pt","ned":"nl","bel":"be","ita":"it","nor":"no","swe":"se","den":"dk","sui":"ch","aut":"at","cze":"cz","pol":"pl","cro":"hr","srb":"rs","ukr":"ua","tur":"tr","gre":"gr","rom":"ro","hun":"hu","svk":"sk","svn":"si","bih":"ba","alb":"al","mkd":"mk","mne":"me","kos":"xk","isl":"is","irl":"ie","fin":"fi","est":"ee","lva":"lv","ltu":"lt","sen":"sn","civ":"ci","gha":"gh","nga":"ng","cmr":"cm","cod":"cd","mar":"ma","egy":"eg","tun":"tn","uga":"ug","zim":"zw","rsa":"za","mli":"ml","gui":"gn","ben":"bj","mex":"mx","col":"co","chi":"cl","uru":"uy","ecu":"ec","ven":"ve","per":"pe","bol":"bo","par":"py","crc":"cr","pan":"pa","jam":"jm","aus":"au","nzl":"nz","idn":"id","tha":"th","vtn":"vn","chn":"cn","ind":"in","irn":"ir","irq":"iq","sau":"sa","qat":"qa","uae":"ae","alg":"dz",  // Algeria
+"bfa":"bf",  // Burkina Faso
+"bul":"bg",  // Bulgaria
+"can":"ca",  // Canada
+"gam":"gm",  // Gambia
+"geo":"ge",  // Georgia
+"gnb":"gw",  // Guinea-Bissau
+"hai":"ht",  // Haiti
+"moz":"mz",  // Mozambique
+"rou":"ro",  // Romania
+"uzb":"uz",  // Uzbekistan
+    };
+    const iso2 = map3to2[c] || (c.length === 2 ? c : null);
+    return iso2 ? `https://flagcdn.com/20x15/${iso2}.png` : "";
+  }
+
+  function posLabel(pos) {
+    return {GK:"Thủ môn",DEF:"Hậu vệ",MID:"Tiền vệ",FWD:"Tiền đạo"}[pos] || pos || "";
+  }
+
+  function esc(s) { return (s||"").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+  function renderCard(p) {
+    const flag = flagUrl(p.nationality);
+    const flagHtml = flag ? `<img src="${flag}" style="position:absolute;top:8px;left:8px;width:22px;height:16px;border-radius:3px;object-fit:cover;box-shadow:0 2px 6px rgba(0,0,0,0.4);z-index:2">` : "";
+    const shirt = p.shirt_number != null ? `<span style="position:absolute;top:8px;right:8px;background:var(--color-accent);color:var(--color-primary);font-family:var(--font-display);font-weight:900;font-size:.7rem;padding:3px 7px;border-radius:6px;box-shadow: 0 2px 8px rgba(0,0,0,0.3);z-index:2">#${p.shirt_number}</span>` : "";
+
+    // SỬ DỤNG TRỰC TIẾP URL TỪ API (club_badge)
+    const clubBadgeUrl = p.club_badge || (p.club_id ? `https://images.fotmob.com/image_resources/logo/teamlogo/${p.club_id}.png` : null);
+
+    const clubLogoHtml = clubBadgeUrl
+      ? `<img src="${clubBadgeUrl}" width="18" height="18" style="object-fit:contain;flex-shrink:0" onerror="this.src='/static/images/placeholder.svg'; this.style.opacity='0.3';">`
+      : `<img src="/static/images/placeholder.svg" width="18" height="18" style="opacity:0.3; flex-shrink:0">`;
+
+    return `<div class="card" style="padding:0;overflow:hidden;cursor:pointer;transition:transform .3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow .3s"
+              onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 12px 30px rgba(0,0,0,0.5)'"
+              onmouseout="this.style.transform='';this.style.boxShadow=''"
+              onclick="window.location='/players/${p.id}'">
+
+      <div style="position:relative;background:linear-gradient(180deg, var(--color-surface-2) 0%, var(--color-surface-3) 100%);height:150px;display:flex;align-items:flex-end;justify-content:center;overflow:hidden">
+        <img src="${p.photo_url||''}" alt="${esc(p.name)}"
+             style="height:140px;object-fit:contain;object-position:bottom;image-rendering:-webkit-optimize-contrast"
+             onerror="this.src='https://images.fotmob.com/image_resources/playerimages/default.png'">
+        ${flagHtml}
+        ${shirt}
+      </div>
+
+      <div style="padding:12px 14px 16px; font-family:var(--font-display)">
+        <div style="font-weight:800;font-size:0.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;color:white">
+          ${esc(p.name)}
+        </div>
+
+        <div style="font-size:0.75rem; font-weight:700; color:white; margin-bottom:8px">
+          ${posLabel(p.position)}
+        </div>
+
+        <div style="display:flex;align-items:center;gap:8px;font-size:0.75rem;color:white;min-width:0">
+          <div style="width:18px;height:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            ${clubLogoHtml}
+          </div>
+          <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600">
+            ${esc(p.club_name||"")}
+          </span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function skeleton() {
+    return Array(12).fill(`<div class="skeleton" style="height:230px;border-radius:12px"></div>`).join("");
+  }
+
+  async function load(append) {
+    if (loading) return;
+    loading = true;
+    const grid = document.getElementById("players-grid");
+    if (!append) grid.innerHTML = skeleton();
+
+    let url = `/api/players/?league=${league}&season=2025&per_page=${PER}&page=${page}`;
+    if (position) url += `&position=${position}`;
+
+    let res, data;
+    try {
+      res  = await fetch(url);
+      data = await res.json();
+    } catch(e) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:white;font-family:var(--font-display)">Lỗi kết nối.</div>`;
+      loading = false; return;
+    }
+
+    const items = data.items || [];
+    totalPages  = data.pages || 1;
+
+    if (!append) {
+      grid.innerHTML = items.length ? items.map(renderCard).join("") : `<div style="grid-column:1/-1;text-align:center;padding:40px;color:white;font-family:var(--font-display)">Không có dữ liệu.</div>`;
+    } else {
+      items.forEach(p => {
+        const div = document.createElement("div");
+        div.innerHTML = renderCard(p);
+        grid.appendChild(div.firstElementChild);
+      });
+    }
+
+    document.getElementById("load-more").style.display = page < totalPages ? "" : "none";
+    document.getElementById("no-more").style.display   = page >= totalPages && items.length > 0 ? "" : "none";
+    loading = false;
+  }
+
+  function setLeague(lg) {
+    league = (lg||"PL").toUpperCase();
+    document.getElementById("league-label").textContent = league === "UCL" ? "Champions League" : "Premier League";
+    position = "";
+    document.querySelectorAll("[data-pos]").forEach(b => { b.classList.remove("btn-primary"); b.classList.add("btn-ghost"); });
+    document.querySelector("[data-pos='']").classList.add("btn-primary");
+    document.querySelector("[data-pos='']").classList.remove("btn-ghost");
+    page = 1; load(false);
+  }
+
+  let searchTimer;
+  function setupSearch() {
+    const inp = document.getElementById("search-input");
+    const box = document.getElementById("search-results");
+    inp.addEventListener("input", () => {
+      clearTimeout(searchTimer);
+      const q = inp.value.trim();
+      if (!q) { box.style.display = "none"; return; }
+      searchTimer = setTimeout(async () => {
+        const r = await fetch(`/api/players/search?q=${encodeURIComponent(q)}&league=${league}`);
+        const d = await r.json();
+        const items = d.items || [];
+        if (!items.length) { box.style.display = "none"; return; }
+        box.innerHTML = items.map(p => {
+          const flag = flagUrl(p.nationality);
+          // Cập nhật lấy trực tiếp club_badge cho phần tìm kiếm
+          const clubBadgeUrl = p.club_badge || (p.club_id ? `https://images.fotmob.com/image_resources/logo/teamlogo/${p.club_id}.png` : null);
+          const searchLogo = clubBadgeUrl ? `<img src="${clubBadgeUrl}" width="16" height="16" style="object-fit:contain" onerror="this.style.display='none'">` : "";
+
+          return `<div onclick="window.location='/players/${p.id}'" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--color-border);font-family:var(--font-display)" onmouseover="this.style.background='var(--color-surface-3)'" onmouseout="this.style.background=''">
+            <img src="${p.photo_url||''}" width="32" height="32" style="border-radius:50%;object-fit:cover" onerror="this.style.opacity=0">
+            <div style="flex:1; min-width:0">
+              <div style="font-weight:700;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:white">${esc(p.name)}</div>
+              <div style="display:flex;align-items:center;gap:5px;font-size:.72rem;color:white">
+                ${flag ? `<img src="${flag}" style="width:16px;height:11px">` : ""}
+                ${searchLogo}
+                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.club_name||"")}</span>
+              </div>
+            </div>
+            <span style="font-size:.65rem;color:white;font-weight:700;width:70px;text-align:right">${posLabel(p.position)}</span>
+          </div>`;
+        }).join("");
+        box.style.display = "";
+      }, 300);
+    });
+    document.addEventListener("click", e => { if (!inp.contains(e.target) && !box.contains(e.target)) box.style.display = "none"; });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    setLeague(typeof Theme !== "undefined" ? Theme.getLeague() : "PL");
+    if (typeof Theme !== "undefined") Theme.onChange(setLeague);
+    document.getElementById("pos-tabs").addEventListener("click", e => {
+      const btn = e.target.closest("[data-pos]"); if (!btn) return;
+      position = btn.dataset.pos;
+      document.querySelectorAll("[data-pos]").forEach(b => { b.classList.remove("btn-primary"); b.classList.add("btn-ghost"); });
+      btn.classList.add("btn-primary"); btn.classList.remove("btn-ghost");
+      page = 1; load(false);
+    });
+    document.getElementById("load-more").addEventListener("click", () => { page++; load(true); });
+    setupSearch();
+  });
+})();
+</script>
+{% endblock %}

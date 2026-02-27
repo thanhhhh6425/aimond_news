@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Câu lạc bộ{% endblock %}
+{% block content %}
+<section class="section container" style="padding-top:90px">
+  <h1 class="section-title">Câu Lạc Bộ — <span data-league-label>Premier League</span></h1>
+  <div id="clubs-grid" class="grid-clubs"></div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const PageData = (() => {
+  async function reload() {
+    const res = await API.clubs.list();
+    if (!res.ok) return;
+    document.getElementById("clubs-grid").innerHTML = (res.data.items||[]).map(c=>`
+      <a href="/clubs/${c.id}" class="card" style="padding:28px 20px;text-align:center;cursor:pointer;text-decoration:none;display:block">
+        <img src="${c.badge_url||""}" width="72" height="72" style="object-fit:contain;margin:0 auto 14px" onerror="this.style.opacity=0">
+        <p style="font-family:var(--font-display);font-weight:800;font-size:.95rem;text-transform:uppercase;letter-spacing:.02em;margin-bottom:6px">${UI.escapeHtml(c.name||"")}</p>
+        ${c.stadium_name?`<p style="font-size:.75rem;color:var(--color-text-muted)">${UI.escapeHtml(c.stadium_name)}</p>`:""}
+        ${c.manager?`<p style="font-size:.75rem;color:var(--color-text-muted);margin-top:4px">🧢 ${UI.escapeHtml(c.manager)}</p>`:""}
+      </a>`).join("") || `<p style="color:var(--color-text-muted);grid-column:1/-1;text-align:center;padding:32px">Chưa có dữ liệu.</p>`;
+  }
+  document.addEventListener("DOMContentLoaded", ()=>{ reload(); Theme.onChange(reload); });
+  return { reload };
+})();
+</script>
+{% endblock %}

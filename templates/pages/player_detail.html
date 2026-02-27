@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}Thông tin cầu thủ{% endblock %}
+{% block content %}
+<div id="player-wrap" style="padding-top:var(--header-height)">
+
+  <!-- Hero -->
+  <div id="player-hero" style="background:linear-gradient(135deg,var(--color-primary-dark),var(--color-primary));padding:48px 0 0">
+    <div class="container" style="display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:flex-end">
+      <div style="position:relative;flex-shrink:0">
+        <img id="player-photo" src="" width="180" height="180"
+             style="border-radius:16px;object-fit:cover;object-position:top;border:3px solid var(--color-accent);background:var(--color-surface-3);display:block"
+             onerror="this.style.opacity=.2">
+        <span id="player-number" style="display:none;position:absolute;bottom:-8px;right:-8px;background:var(--color-accent);color:var(--color-bg);font-family:var(--font-display);font-weight:900;font-size:1rem;padding:4px 12px;border-radius:12px"></span>
+      </div>
+      <div style="padding-bottom:32px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <img id="club-badge" src="" width="28" height="28" style="object-fit:contain;display:none" onerror="this.style.display='none'">
+          <span id="player-club" style="font-family:var(--font-display);font-size:.8rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent)"></span>
+        </div>
+        <h1 id="player-name" style="font-size:clamp(1.8rem,5vw,3.5rem);line-height:1;margin-bottom:16px;color:white"></h1>
+        <div id="player-meta" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section container">
+    <!-- Top stat cards -->
+    <div id="stat-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-bottom:32px"></div>
+
+    <!-- Info table only -->
+    <div style="max-width:600px" id="info-table"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const id = {{ player_id }};
+
+  let p;
+  try {
+    const res = await fetch(`/api/players/${id}`);
+    p = await res.json();
+  } catch(e) {
+    document.getElementById("player-wrap").innerHTML = `<div style="text-align:center;padding:80px;color:var(--color-text-muted)">Không tìm thấy cầu thủ.</div>`;
+    return;
+  }
+
+  // ── Position mapping chính xác ──────────────────────────────────
+  // Dùng position từ API, map sang tên cụ thể theo FotMob position IDs
+  // FotMob trả position là GK/DEF/MID/FWD - dùng để hiển thị tên cụ thể hơn
+  const POS_LABEL = {
+    GK:"GK",
+    DEF:"DEF", MID:"MID", FWD:"FWD",
+  };
+  const POS_FULL = {
+    GK:"Thủ môn",
+    DEF:"Hậu vệ", MID:"Tiền vệ", FWD:"Tiền đạo",
+  };
+  const POS_COLOR = {
+    GK:"#f5a623", DEF:"#1a73e8", MID:"#2ecc71", FWD:"#e74c3c",
+  };
+
+  const posRaw   = p.position || "FWD";
+  const posLabel = POS_LABEL[posRaw] || posRaw;
+  const posFull  = POS_FULL[posRaw]  || posRaw;
+  const posColor = POS_COLOR[posRaw] || "var(--color-accent)";
+
+  // ── Flag ────────────────────────────────────────────────────────
+  const flagMap = {
+    "eng":"gb-eng","sco":"gb-sct","wal":"gb-wls","nir":"gb-nir",
+    "nor":"no","swe":"se","den":"dk","ned":"nl","bel":"be","ger":"de",
+    "fra":"fr","esp":"es","por":"pt","ita":"it","sui":"ch","aut":"at",
+    "cze":"cz","pol":"pl","cro":"hr","srb":"rs","ukr":"ua","tur":"tr",
+    "bra":"br","arg":"ar","col":"co","uru":"uy","chi":"cl","ecu":"ec",
+    "per":"pe","mex":"mx","usa":"us","sen":"sn","civ":"ci","gha":"gh",
+    "nga":"ng","cmr":"cm","mar":"ma","egy":"eg","alg":"dz","jpn":"jp",
+    "kor":"kr","aus":"au","isl":"is","irl":"ie","fin":"fi","gre":"gr",
+    "rom":"ro","hun":"hu","svk":"sk","arm":"am","geo":"ge","mon":"mc",
+    "cod":"cd","mli":"ml","gui":"gn","ang":"ao","zam":"zm","tan":"tz",
+    "ken":"ke","isr":"il","kaz":"kz","uzb":"uz","aze":"az","lux":"lu",
+    "rsa":"za","crc":"cr","pan":"pa","jam":"jm","bol":"bo","par":"py",
+    "ven":"ve","moz":"mz","bfa":"bf","lib":"lr","sle":"sl","gab":"ga",
+    "ben":"bj","cap":"cv","gui":"gn","gam":"gm",
+  };
+  function flagUrl(code) {
+    if (!code) return "";
+    const c = code.toLowerCase().trim();
+    const iso2 = flagMap[c] || (c.length === 2 ? c : null);
+    return iso2 ? `https://flagcdn.com/20x15/${iso2}.png` : "";
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return null;
+    const d = new Date(iso);
+    return d.toLocaleDateString("vi-VN", {day:"2-digit",month:"2-digit",year:"numeric"});
+  }
+  function fmt(val) {
+    return (val != null && val !== "") ? val : null;
+  }
+
+  // ── Header ──────────────────────────────────────────────────────
+  document.title = (p.name || "Cầu thủ") + " — AimondNews";
+  document.getElementById("player-photo").src = p.photo_url || "";
+
+  document.getElementById("player-name").textContent = p.name || "";
+  document.getElementById("player-club").textContent  = p.club_name || "";
+
+  const badge = document.getElementById("club-badge");
+  if (p.club_badge) { badge.src = p.club_badge; badge.style.display = ""; }
+
+  const numEl = document.getElementById("player-number");
+  if (p.shirt_number) { numEl.textContent = "#" + p.shirt_number; numEl.style.display = ""; }
+
+  const flag = flagUrl(p.nationality);
+  document.getElementById("player-meta").innerHTML = [
+    `<span style="background:${posColor};color:#fff;font-family:var(--font-display);font-weight:800;font-size:.75rem;padding:5px 14px;border-radius:20px">${posLabel} · ${posFull}</span>`,
+    flag ? `<span style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);color:white;padding:5px 14px;border-radius:20px;font-size:.78rem"><img src="${flag}" style="width:18px;height:13px;border-radius:2px">${(p.nationality||"").toUpperCase()}</span>` : "",
+    p.age      ? `<span style="background:rgba(255,255,255,.12);color:white;padding:5px 14px;border-radius:20px;font-size:.78rem">${p.age} tuổi</span>` : "",
+    p.height_cm? `<span style="background:rgba(255,255,255,.12);color:white;padding:5px 14px;border-radius:20px;font-size:.78rem">${p.height_cm} cm</span>` : "",
+  ].filter(Boolean).join("");
+
+  // ── Top stat cards ───────────────────────────────────────────────
+  const isGK = posRaw === "GK";
+  const topCards = isGK ? [
+    {label:"Ra sân",      val:fmt(p.appearances), accent:false},
+    {label:"Phút",        val:fmt(p.minutes_played), accent:false},
+    {label:"Sạch lưới",   val:fmt(p.clean_sheets), accent:true},
+    {label:"Cứu thua",    val:fmt(p.saves), accent:true},
+    {label:"Thẻ vàng",    val:fmt(p.yellow_cards)},
+    {label:"Thẻ đỏ",      val:fmt(p.red_cards)},
+    {label:"Điểm TB",     val:p.average_rating != null ? parseFloat(p.average_rating).toFixed(2) : null},
+  ] : [
+    {label:"Bàn thắng",   val:fmt(p.goals),   accent:true, big:true},
+    {label:"Kiến tạo",    val:fmt(p.assists),  accent:true, big:true},
+    {label:"Ra sân",      val:fmt(p.appearances)},
+    {label:"Phút",        val:fmt(p.minutes_played)},
+    {label:"Thẻ vàng",    val:fmt(p.yellow_cards)},
+    {label:"Thẻ đỏ",      val:fmt(p.red_cards)},
+    {label:"Điểm TB",     val:p.average_rating != null ? parseFloat(p.average_rating).toFixed(2) : null},
+  ];
+
+  document.getElementById("stat-cards").innerHTML = topCards
+    .filter(c => c.val != null)
+    .map(c => `
+      <div class="card" style="padding:18px;text-align:center">
+        <p style="font-family:var(--font-display);font-size:${c.big?"2rem":"1.6rem"};font-weight:900;color:${c.accent?"var(--color-accent)":"white"};line-height:1;margin-bottom:6px">${c.val}</p>
+        <p style="font-size:.68rem;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.08em;font-family:var(--font-display)">${c.label}</p>
+      </div>`).join("");
+
+  // ── Info table — chỉ hiện row có data ───────────────────────────
+  const COUNTRY_NAME = {
+    ENG:"Anh", SCO:"Scotland", WAL:"Wales", NIR:"Bắc Ireland", IRL:"Ireland",
+    FRA:"Pháp", GER:"Đức", ESP:"Tây Ban Nha", ITA:"Ý", POR:"Bồ Đào Nha",
+    NED:"Hà Lan", BEL:"Bỉ", SUI:"Thụy Sĩ", AUT:"Áo", SWE:"Thụy Điển",
+    NOR:"Na Uy", DEN:"Đan Mạch", FIN:"Phần Lan", POL:"Ba Lan", CZE:"Cộng hòa Séc",
+    SVK:"Slovakia", HUN:"Hungary", ROM:"Romania", CRO:"Croatia", SRB:"Serbia",
+    UKR:"Ukraine", RUS:"Nga", TUR:"Thổ Nhĩ Kỳ", GRE:"Hy Lạp", ISL:"Iceland",
+    BRA:"Brazil", ARG:"Argentina", URU:"Uruguay", COL:"Colombia", CHI:"Chile",
+    ECU:"Ecuador", PER:"Peru", BOL:"Bolivia", PAR:"Paraguay", VEN:"Venezuela",
+    MEX:"Mexico", USA:"Mỹ", CRC:"Costa Rica", JAM:"Jamaica", PAN:"Panama",
+    SEN:"Senegal", CIV:"Bờ Biển Ngà", GHA:"Ghana", NGA:"Nigeria", CMR:"Cameroon",
+    MAR:"Morocco", EGY:"Ai Cập", ALG:"Algeria", TUN:"Tunisia", MLI:"Mali",
+    GUI:"Guinea", GAB:"Gabon", COD:"Congo DR", ANG:"Angola", ZAM:"Zambia",
+    BFA:"Burkina Faso", LBR:"Liberia", SLE:"Sierra Leone", GAM:"Gambia",
+    JPN:"Nhật Bản", KOR:"Hàn Quốc", AUS:"Úc", ISR:"Israel", KAZ:"Kazakhstan",
+    UZB:"Uzbekistan", GEO:"Georgia", ARM:"Armenia", AZE:"Azerbaijan", MON:"Montenegro",
+    LUX:"Luxembourg", RSA:"Nam Phi", CPV:"Cape Verde", MTQ:"Martinique",
+  };
+
+  const infoRows = [
+    ["Họ tên",      p.name],
+    ["Ngày sinh",   fmtDate(p.date_of_birth)],
+    ["Tuổi",        p.age ? `${p.age} tuổi` : null],
+    ["Quốc tịch",   p.nationality ? (COUNTRY_NAME[p.nationality.toUpperCase()] || p.nationality.toUpperCase()) : null],
+    ["Chiều cao",   p.height_cm ? `${p.height_cm} cm` : null],
+    ["Chân thuận",  p.foot ? (p.foot==="right"?"Chân phải":p.foot==="left"?"Chân trái":"Hai chân") : null],
+    ["Số áo",       p.shirt_number ? `#${p.shirt_number}` : null],
+    ["Vị trí",      `${posLabel} — ${posFull}`],
+    ["Câu lạc bộ",  p.club_name || null],
+  ].filter(([,val]) => val != null);
+
+  document.getElementById("info-table").innerHTML = `
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:14px 18px;background:var(--color-surface-2);border-bottom:1px solid var(--color-border)">
+        <h3 style="font-family:var(--font-display);font-weight:900;font-size:.82rem;text-transform:uppercase;letter-spacing:.08em;color:var(--color-accent);margin:0">Thông tin cá nhân</h3>
+      </div>
+      <table style="width:100%;border-collapse:collapse">
+        ${infoRows.map(([label,val],i) => `
+          <tr style="border-bottom:1px solid var(--color-border);${i%2===0?"background:rgba(255,255,255,.02)":""}">
+            <td style="padding:11px 18px;font-size:.8rem;color:var(--color-text-muted);width:40%">${label}</td>
+            <td style="padding:11px 18px;font-family:var(--font-display);font-weight:700;font-size:.85rem;text-align:right">${val}</td>
+          </tr>`).join("")}
+      </table>
+    </div>`;
+});
+</script>
+{% endblock %}

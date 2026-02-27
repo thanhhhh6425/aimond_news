@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40">
+  <rect width="120" height="40" rx="6" fill="#38003c"/>
+  <text x="12" y="26" font-family="Arial Black, sans-serif" font-weight="900"
+        font-size="15" fill="#00ff85" letter-spacing="1">PREMIER</text>
+  <text x="12" y="38" font-family="Arial Black, sans-serif" font-weight="900"
+        font-size="10" fill="white" letter-spacing="3">LEAGUE</text>
+</svg>

@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Tin tức{% endblock %}
+{% block content %}
+<section class="section container" style="padding-top:90px">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px">
+    <h1 class="section-title" style="margin:0">Tin Tức — <span id="league-label">Premier League</span></h1>
+  </div>
+
+  <!-- Category filter -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px" id="cat-tabs">
+    <button class="btn btn-primary btn-sm" data-cat="">Tất cả</button>
+    <button class="btn btn-ghost  btn-sm" data-cat="Trận đấu">Trận đấu</button>
+    <button class="btn btn-ghost  btn-sm" data-cat="Chuyển nhượng">Chuyển nhượng</button>
+    <button class="btn btn-ghost  btn-sm" data-cat="Phỏng vấn">Phỏng vấn</button>
+    <button class="btn btn-ghost  btn-sm" data-cat="Chấn thương">Chấn thương</button>
+  </div>
+
+  <!-- News grid -->
+  <div id="news-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px"></div>
+
+  <div style="text-align:center;margin-top:28px">
+    <button id="load-more" class="btn btn-ghost" style="display:none">Xem thêm</button>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  let league = "PL", category = "", page = 1, totalPages = 1;
+
+  function timeAgo(iso) {
+    if (!iso) return "";
+    const diff = (Date.now() - new Date(iso)) / 1000;
+    if (diff < 60)     return "Vừa xong";
+    if (diff < 3600)   return `${Math.floor(diff/60)} phút trước`;
+    if (diff < 86400)  return `${Math.floor(diff/3600)} giờ trước`;
+    if (diff < 604800) return `${Math.floor(diff/86400)} ngày trước`;
+    return new Date(iso).toLocaleDateString("vi-VN");
+  }
+
+  function catColor(cat) {
+    return {
+      "Trận đấu":"#1a73e8","Chuyển nhượng":"#f5a623",
+      "Phỏng vấn":"#2ecc71","Chấn thương":"#e74c3c"
+    }[cat] || "var(--color-accent)";
+  }
+
+  function esc(s) { return (s||"").replace(/</g,"&lt;"); }
+
+  function renderCard(n) {
+    const thumb = n.thumbnail_url
+      ? `<img src="${n.thumbnail_url}" alt="${esc(n.title)}"
+              style="width:100%;height:180px;object-fit:cover;display:block"
+              onerror="this.parentElement.style.display='none'">`
+      : `<div style="height:180px;background:var(--color-surface-2);display:flex;align-items:center;justify-content:center;font-size:2rem">📰</div>`;
+
+    return `<a href="${n.source_url||'#'}" target="_blank" rel="noopener"
+               class="card" style="overflow:hidden;text-decoration:none;display:block;transition:transform .2s,box-shadow .2s"
+               onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.4)'"
+               onmouseout="this.style.transform='';this.style.boxShadow=''">
+      <div style="overflow:hidden">${thumb}</div>
+      <div style="padding:16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="background:${catColor(n.category)};color:#fff;font-size:.65rem;font-weight:800;padding:2px 8px;border-radius:10px;text-transform:uppercase">${n.category||"Tin tức"}</span>
+          <span style="font-size:.72rem;color:var(--color-text-muted)">${n.source_name||""}</span>
+          <span style="font-size:.72rem;color:var(--color-text-muted);margin-left:auto">${timeAgo(n.published_at)}</span>
+        </div>
+        <h3 style="font-family:var(--font-display);font-weight:800;font-size:.95rem;line-height:1.35;margin:0 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(n.title)}</h3>
+        ${n.excerpt ? `<p style="font-size:.78rem;color:var(--color-text-muted);line-height:1.5;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(n.excerpt)}</p>` : ""}
+      </div>
+    </a>`;
+  }
+
+  function skeleton() {
+    return Array(6).fill(`<div class="skeleton" style="height:280px;border-radius:12px"></div>`).join("");
+  }
+
+  async function load(append) {
+    const grid = document.getElementById("news-grid");
+    if (!append) grid.innerHTML = skeleton();
+
+    let url = `/api/news/?league=${league}&per_page=12&page=${page}`;
+    if (category) url += `&category=${encodeURIComponent(category)}`;
+
+    let res, data;
+    try {
+      res  = await fetch(url);
+      data = await res.json();
+    } catch(e) {
+      grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--color-text-muted)">Lỗi kết nối.</div>`;
+      return;
+    }
+
+    const items = data.items || [];
+    totalPages = data.pages || 1;
+
+    if (!append) {
+      grid.innerHTML = items.length
+        ? items.map(renderCard).join("")
+        : `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--color-text-muted)">
+             <div style="font-size:3rem;margin-bottom:12px">📰</div>
+             <p>Chưa có tin tức. Chạy <code>python crawl_news.py</code> để cập nhật.</p>
+           </div>`;
+    } else {
+      items.forEach(n => {
+        const d = document.createElement("div");
+        d.innerHTML = renderCard(n);
+        grid.appendChild(d.firstElementChild);
+      });
+    }
+
+    document.getElementById("load-more").style.display = page < totalPages ? "" : "none";
+  }
+
+  function setLeague(lg) {
+    league = (lg||"PL").toUpperCase();
+    document.getElementById("league-label").textContent = league === "UCL" ? "Champions League" : "Premier League";
+    category = ""; page = 1;
+    document.querySelectorAll("[data-cat]").forEach(b => { b.classList.remove("btn-primary"); b.classList.add("btn-ghost"); });
+    document.querySelector("[data-cat='']").classList.add("btn-primary");
+    document.querySelector("[data-cat='']").classList.remove("btn-ghost");
+    load(false);
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    setLeague(typeof Theme !== "undefined" ? Theme.getLeague() : "PL");
+    if (typeof Theme !== "undefined") Theme.onChange(setLeague);
+
+    document.getElementById("cat-tabs").addEventListener("click", e => {
+      const btn = e.target.closest("[data-cat]"); if (!btn) return;
+      category = btn.dataset.cat; page = 1;
+      document.querySelectorAll("[data-cat]").forEach(b => { b.classList.remove("btn-primary"); b.classList.add("btn-ghost"); });
+      btn.classList.add("btn-primary"); btn.classList.remove("btn-ghost");
+      load(false);
+    });
+
+    document.getElementById("load-more").addEventListener("click", () => { page++; load(true); });
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,393 @@
+<!-- templates/partials/chatbot.html -->
+<!-- AAA — AimondAIAssistant Floating Chatbot -->
+
+<div id="aaa-chatbot" class="aaa-chatbot" aria-live="polite">
+
+  <!-- Floating trigger button -->
+  <button class="aaa-trigger" id="aaa-trigger" aria-label="Mở AimondAI Assistant" aria-expanded="false">
+    <span class="aaa-trigger-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="currentColor" opacity=".2"/>
+        <path d="M8.5 9h7M8.5 12h5M12 16l3-3H8.5A1.5 1.5 0 017 11.5v-4A1.5 1.5 0 018.5 6h7A1.5 1.5 0 0117 7.5v4a1.5 1.5 0 01-1.5 1.5H15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <span class="aaa-trigger-label">AAA</span>
+    <span class="aaa-notif" id="aaa-notif">1</span>
+  </button>
+
+  <!-- Chat window -->
+  <div class="aaa-window" id="aaa-window" role="dialog" aria-label="AimondAI Assistant" aria-modal="false">
+
+    <!-- Header -->
+    <div class="aaa-header">
+      <div class="aaa-header-info">
+        <div class="aaa-avatar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" fill="currentColor" opacity=".15"/>
+            <path d="M9 9h.01M15 9h.01M8 13s1.5 2 4 2 4-2 4-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <p class="aaa-name">AAA</p>
+          <p class="aaa-status">
+            <span class="aaa-status-dot"></span>
+            AimondAI Assistant
+          </p>
+        </div>
+      </div>
+      <button class="aaa-close" id="aaa-close" aria-label="Đóng chatbot">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Messages -->
+    <div class="aaa-messages" id="aaa-messages">
+      <div class="aaa-msg aaa-msg-bot">
+        <div class="aaa-msg-bubble">
+          Xin chào! Tôi là <strong>AAA</strong> — AimondAI Assistant 👋<br><br>
+          Tôi có thể giúp bạn tra cứu bảng xếp hạng, lịch thi đấu, kết quả, thông tin cầu thủ và tin tức mới nhất về Premier League & Champions League 2025/26.
+        </div>
+      </div>
+
+      <!-- Quick suggestions -->
+      <div class="aaa-suggestions" id="aaa-suggestions">
+        <button class="aaa-suggestion-btn" data-msg="Bảng xếp hạng PL hiện tại">📊 BXH Premier League</button>
+        <button class="aaa-suggestion-btn" data-msg="Lịch thi đấu sắp tới">📅 Lịch thi đấu</button>
+        <button class="aaa-suggestion-btn" data-msg="Kết quả trận đấu gần nhất">⚽ Kết quả</button>
+        <button class="aaa-suggestion-btn" data-msg="Top vua phá lưới">🥇 Vua phá lưới</button>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="aaa-input-area">
+      <input type="text"
+             class="aaa-input"
+             id="aaa-input"
+             placeholder="Hỏi về bóng đá..."
+             autocomplete="off"
+             maxlength="200">
+      <button class="aaa-send" id="aaa-send" aria-label="Gửi">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<style>
+/* ── AAA Chatbot Styles ── */
+.aaa-chatbot {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  z-index: 1500;
+  font-family: var(--font-body);
+}
+
+/* Trigger */
+.aaa-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px 12px 16px;
+  background: var(--color-accent);
+  color: var(--color-primary);
+  border-radius: 40px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  transition: all var(--transition-slow);
+  position: relative;
+  overflow: hidden;
+}
+
+.aaa-trigger::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.15);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--transition);
+}
+
+.aaa-trigger:hover::before { transform: scaleX(1); }
+
+.aaa-trigger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.aaa-trigger-icon {
+  display: flex;
+  animation: bounce-subtle 2.5s ease infinite;
+}
+
+@keyframes bounce-subtle {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
+}
+
+.aaa-notif {
+  position: absolute;
+  top: -2px; right: -2px;
+  width: 18px; height: 18px;
+  background: var(--color-live);
+  color: white;
+  border-radius: 50%;
+  font-size: 0.65rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse-notif 2s ease infinite;
+}
+
+@keyframes pulse-notif {
+  0%,100% { transform: scale(1); }
+  50%      { transform: scale(1.2); }
+}
+
+.aaa-notif.hidden { display: none; }
+
+/* Window */
+.aaa-window {
+  position: absolute;
+  bottom: calc(100% + 12px); right: 0;
+  width: 360px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255,255,255,0.04);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 520px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(12px) scale(0.96);
+  transform-origin: bottom right;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.aaa-window.open {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0) scale(1);
+}
+
+/* Header */
+.aaa-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--color-primary);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  transition: background var(--transition-slow);
+}
+
+.aaa-header-info { display: flex; align-items: center; gap: 10px; }
+
+.aaa-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-accent);
+}
+
+.aaa-name {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  color: white;
+}
+
+.aaa-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.6);
+}
+
+.aaa-status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  animation: pulse-live 1.5s ease infinite;
+  flex-shrink: 0;
+}
+
+.aaa-close {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition);
+}
+
+.aaa-close:hover { background: rgba(255,255,255,0.2); }
+
+/* Messages */
+.aaa-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+
+.aaa-msg { display: flex; }
+
+.aaa-msg-bot  { justify-content: flex-start; }
+.aaa-msg-user { justify-content: flex-end; }
+
+.aaa-msg-bubble {
+  max-width: 88%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.aaa-msg-bot .aaa-msg-bubble {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-bottom-left-radius: 4px;
+  color: var(--color-text);
+}
+
+.aaa-msg-user .aaa-msg-bubble {
+  background: var(--color-primary);
+  color: white;
+  border-bottom-right-radius: 4px;
+  transition: background var(--transition-slow);
+}
+
+/* Typing indicator */
+.aaa-typing {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+}
+
+.aaa-typing span {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  animation: typing-dot 1.2s ease infinite;
+}
+
+.aaa-typing span:nth-child(2) { animation-delay: 0.2s; }
+.aaa-typing span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing-dot {
+  0%,80%,100% { transform: scale(0.7); opacity: 0.4; }
+  40%          { transform: scale(1);   opacity: 1; }
+}
+
+/* Suggestions */
+.aaa-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.aaa-suggestion-btn {
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text);
+  font-size: 0.78rem;
+  font-family: var(--font-body);
+  transition: all var(--transition);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.aaa-suggestion-btn:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* Input */
+.aaa-input-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+}
+
+.aaa-input {
+  flex: 1;
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 20px;
+  padding: 8px 14px;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.aaa-input:focus { border-color: var(--color-accent); }
+.aaa-input::placeholder { color: var(--color-text-dim); }
+
+.aaa-send {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all var(--transition-slow);
+}
+
+.aaa-send:hover {
+  background: var(--color-accent-hover);
+  transform: scale(1.08);
+}
+
+.aaa-send:disabled {
+  opacity: 0.5;
+  transform: none;
+  cursor: not-allowed;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .aaa-chatbot { bottom: 16px; right: 16px; }
+  .aaa-window {
+    position: fixed;
+    bottom: 0; right: 0; left: 0;
+    width: 100%;
+    max-height: 70vh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+}
+</style>

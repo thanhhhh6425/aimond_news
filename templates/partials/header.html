@@ -1,0 +1,67 @@
+<header class="site-header" role="banner">
+  <div class="container header-inner">
+
+    <a href="/" class="header-logo" aria-label="AimondNews Home">
+      <div class="header-logo-mark">A</div>
+      <span class="header-logo-text">Aimond<span>News</span></span>
+    </a>
+
+    <nav class="header-nav" role="navigation" aria-label="Main navigation">
+      <ul class="header-nav-list">
+        <li><a href="/"           {% if request.path == '/' %}class="active"{% endif %}>Home</a></li>
+        <li><a href="/matches"    {% if '/matches' in request.path %}class="active"{% endif %}>Matches</a></li>
+        <li><a href="/table"      {% if '/table' in request.path %}class="active"{% endif %}>Table</a></li>
+        <li><a href="/statistics" {% if '/statistics' in request.path %}class="active"{% endif %}>Stats</a></li>
+        <li><a href="/players"    {% if '/players' in request.path %}class="active"{% endif %}>Players</a></li>
+        <li><a href="/clubs"      {% if '/clubs' in request.path %}class="active"{% endif %}>Clubs</a></li>
+      </ul>
+
+      {% include "partials/league-toggle.html" %}
+
+    </nav>
+
+    <div class="header-right">
+      <button class="header-search-btn" data-search-open aria-label="Tìm kiếm">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </button>
+
+      <div class="auth-logged-out flex gap-sm">
+        <a href="/login"    class="btn-header-login">Đăng nhập</a>
+        <a href="/register" class="btn-header-register">Đăng ký</a>
+      </div>
+
+      <div class="auth-logged-in hidden flex gap-sm" style="align-items:center">
+        <a href="/profile" style="display:flex;align-items:center;gap:8px;color:white">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--color-accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:900;font-size:13px;color:var(--color-primary);transition:all .3s">
+            <span data-user-name style="font-size:10px">U</span>
+          </div>
+        </a>
+        <button onclick="Auth.logout()" class="btn-header-login" style="font-size:.75rem">Logout</button>
+      </div>
+
+      <button class="header-hamburger" aria-label="Menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+
+  </div>
+</header>
+
+<div id="search-overlay" class="search-overlay" role="dialog" aria-label="Tìm kiếm" aria-modal="true">
+  <div class="search-overlay-inner">
+    <input type="text"
+           class="search-overlay-input"
+           placeholder="Tìm kiếm tin tức, cầu thủ, CLB..."
+           autocomplete="off"
+           spellcheck="false">
+    <div class="search-results"></div>
+    <p style="margin-top:16px;font-size:0.78rem;color:var(--color-text-dim);text-align:center">
+      Nhấn <kbd style="background:var(--color-surface-2);padding:2px 7px;border-radius:4px;border:1px solid var(--color-border-strong)">Esc</kbd> để đóng
+      &nbsp;·&nbsp;
+      <kbd style="background:var(--color-surface-2);padding:2px 7px;border-radius:4px;border:1px solid var(--color-border-strong)">Ctrl+K</kbd> để mở
+    </p>
+  </div>
+  <button class="search-overlay-close" aria-label="Đóng tìm kiếm">✕</button>
+</div>

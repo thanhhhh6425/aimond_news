@@ -1,0 +1,19 @@
+/*
+ * static/css/theme-pl.css
+ * Premier League Theme Variables
+ *
+ * NOTE: Các biến này đã được tích hợp vào style.css dưới dạng :root {}
+ * File này tồn tại để tham khảo và có thể import riêng nếu cần.
+ *
+ * Để kích hoạt PL theme: <html data-theme="PL"> (mặc định)
+ */
+
+:root,
+[data-theme="PL"] {
+  --color-primary:       #38003c;
+  --color-primary-dark:  #270028;
+  --color-primary-light: #560058;
+  --color-accent:        #00ff85;
+  --color-accent-hover:  #00e576;
+  --color-accent-2:      #e90052;
+}

@@ -1,0 +1,18 @@
+/*
+ * static/css/theme-ucl.css
+ * UEFA Champions League Theme Variables
+ *
+ * NOTE: Các biến này đã được tích hợp vào style.css dưới dạng [data-theme="UCL"] {}
+ * File này tồn tại để tham khảo và có thể import riêng nếu cần.
+ *
+ * Để kích hoạt UCL theme: <html data-theme="UCL">
+ */
+
+[data-theme="UCL"] {
+  --color-primary:       #0e1e5b;
+  --color-primary-dark:  #07122f;
+  --color-primary-light: #1a2d7a;
+  --color-accent:        #c8a84b;
+  --color-accent-hover:  #e0c060;
+  --color-accent-2:      #4a90d9;
+}

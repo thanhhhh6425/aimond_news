@@ -65,8 +65,8 @@ class DevelopmentConfig(Config):
 
 class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
-    CACHE_TYPE = "RedisCache"
-    CACHE_REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    # Đã đổi từ RedisCache sang SimpleCache để không bị sập trên Render
+    CACHE_TYPE = "SimpleCache"
     SQLALCHEMY_POOL_SIZE = 10
     SQLALCHEMY_MAX_OVERFLOW = 20
 

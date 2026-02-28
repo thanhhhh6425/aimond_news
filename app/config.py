@@ -55,18 +55,15 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL",
-        "sqlite:///aimond_dev.db"
-    )
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///aimond_dev.db'
     CACHE_TYPE = "SimpleCache"
     SQLALCHEMY_ECHO = False
 
 
 class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
-    # Đã đổi từ RedisCache sang SimpleCache để không bị sập trên Render
-    CACHE_TYPE = "SimpleCache"
+    CACHE_TYPE = "RedisCache"
+    CACHE_REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     SQLALCHEMY_POOL_SIZE = 10
     SQLALCHEMY_MAX_OVERFLOW = 20
 

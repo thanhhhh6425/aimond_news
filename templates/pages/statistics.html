@@ -7,7 +7,7 @@
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px" id="stat-tabs">
     <button class="btn btn-primary btn-sm" data-stat="goals"       data-label="Bàn thắng">Ghi bàn</button>
     <button class="btn btn-ghost  btn-sm"  data-stat="assists"     data-label="Kiến tạo">Kiến tạo</button>
-    <button class="btn btn-ghost  btn-sm"  data-stat="appearances" data-label="Trận ra sân">Ra sân</button>
+    <button class="btn btn-ghost  btn-sm"  data-stat="minutes_played" data-label="Số phút thi đấu">Số phút</button>
     <button class="btn btn-ghost  btn-sm"  data-stat="clean_sheets" data-label="Giữ sạch lưới" data-pos="GK">Giữ sạch lưới</button>
     <button class="btn btn-ghost  btn-sm"  data-stat="red_cards"   data-label="Thẻ đỏ">Thẻ đỏ</button>
     <button class="btn btn-ghost  btn-sm"  data-stat="yellow_cards" data-label="Thẻ vàng">Thẻ vàng</button>
@@ -73,10 +73,19 @@
   }
 
   tbody.innerHTML = items.map((s, i) => {
+    // --- Bắt đầu phần code đã sửa ---
     const val = s[currentStat];
-    const display = currentStat === "average_rating"
-      ? (val != null ? parseFloat(val).toFixed(2) : "—")
-      : (val != null ? val : 0);
+    let display;
+
+    if (currentStat === "average_rating") {
+      display = val != null ? parseFloat(val).toFixed(2) : "—";
+    } else if (currentStat === "minutes_played") {
+      // Định dạng số có dấu phẩy phân cách hàng nghìn
+      display = val != null ? parseInt(val).toLocaleString('en-US') : 0;
+    } else {
+      display = val != null ? val : 0;
+    }
+    // --- Kết thúc phần code đã sửa ---
 
     return `<tr>
       <td style="font-family:var(--font-display);font-weight:900;color:var(--color-text-muted)">${i+1}</td>

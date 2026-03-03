@@ -36,6 +36,7 @@
 (function(){
   let league = "PL", status = "", gw = null, page = 1, totalPages = 1;
   const PER_PAGE = 20;
+  let autoRefreshTimer = null; // Biến lưu trữ bộ đếm giờ
 
   function parseUTC(iso) {
     if (!iso) return null;
@@ -61,6 +62,46 @@
       style="object-fit:contain;flex-shrink:0" onerror="this.style.opacity=0">`;
   }
 
+  function renderEvents(events) {
+    if (!events || events.length === 0) return "";
+    const sortedEvents = [...events].sort((a, b) => {
+        const minA = parseInt(a.minute.toString().split('+')[0]);
+        const minB = parseInt(b.minute.toString().split('+')[0]);
+        return minA - minB;
+    });
+
+    function evIcon(type) {
+      const isUCL = league === "UCL";
+      const ballUrl = isUCL ? "/static/images/ucl-ball.png" : "/static/images/pl-ball.png";
+      const ballHtml = `<img src="${ballUrl}" width="16" height="16" style="vertical-align:middle; object-fit:contain;" onerror="this.outerHTML='⚽'">`;
+
+      if (type === "goal" || type === "penalty_goal") return ballHtml;
+      if (type === "penalty_miss") return `<span style="filter: grayscale(1); opacity:0.5;">${ballHtml}</span>`;
+      if (type === "own_goal")     return `<span style="filter: drop-shadow(0 0 2px #ef4444);">${ballHtml}</span>`;
+      if (type === "yellow_card")  return `<span style="display:inline-block;width:10px;height:14px;background:#f5a623;border-radius:2px;"></span>`;
+      if (type === "red_card")     return `<span style="display:inline-block;width:10px;height:14px;background:#ef4444;border-radius:2px;"></span>`;
+      return "";
+    }
+
+    return `<div style="display:flex; flex-direction:column; gap:10px;">
+      ${sortedEvents.map(e => {
+        const isHome = e.side === "home";
+        return `
+        <div style="display:grid; grid-template-columns: 1fr 40px 1fr; align-items:center; font-size:.82rem; font-family:var(--font-display);">
+          <div style="text-align:right; color:white; padding-right:12px;">
+            ${isHome ? `<span>${e.player} <span style="color:var(--color-text-muted); font-size:.72rem; margin-left:4px;">${e.minute}'</span></span>` : ""}
+          </div>
+          <div style="display:flex; justify-content:center; align-items:center;">
+            ${evIcon(e.type)}
+          </div>
+          <div style="text-align:left; color:white; padding-left:12px;">
+            ${!isHome ? `<span><span style="color:var(--color-text-muted); font-size:.72rem; margin-right:4px;">${e.minute}'</span> ${e.player}</span>` : ""}
+          </div>
+        </div>`;
+      }).join("")}
+    </div>`;
+  }
+
   function renderMatch(m) {
     const h = m.home_team || {}, a = m.away_team || {};
     const isLive = m.status === "LIVE", isFT = m.status === "FT";
@@ -76,14 +117,16 @@
     }
 
     let statusHtml;
-    if (isLive)
-      statusHtml = `<span style="background:var(--color-live);color:#fff;font-size:.7rem;font-weight:800;padding:3px 10px;border-radius:12px;animation:pulse 1s infinite; font-family:var(--font-display);">Live ${m.minute||""}\'</span>`;
-    else if (isFT)
-      statusHtml = `<span style="background:var(--color-surface-3);color:white;font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:12px; font-family:var(--font-display);">FT</span>`;
-    else
-      statusHtml = `<span style="font-family:var(--font-display);font-size:.88rem;font-weight:700;color:white;">${fmtTime(m.kickoff_at)}</span>`;
+    if (isLive) {
+      // --- Fix 1 & 2: Ẩn dấu nháy nếu không có phút, căn giữa nhãn Live ---
+      const minuteText = m.minute ? ` ${m.minute}'` : "";
+      statusHtml = `<span style="display:inline-flex; align-items:center; justify-content:center; background:var(--color-live); color:#fff; font-size:.7rem; font-weight:800; padding:3px 10px; border-radius:12px; animation:pulse 1s infinite; font-family:var(--font-display);">Live${minuteText}</span>`;
+    } else if (isFT) {
+      statusHtml = `<span style="display:inline-flex; align-items:center; justify-content:center; background:var(--color-surface-3); color:white; font-size:.7rem; font-weight:700; padding:3px 10px; border-radius:12px; font-family:var(--font-display);">FT</span>`;
+    } else {
+      statusHtml = `<span style="display:inline-flex; align-items:center; justify-content:center; font-family:var(--font-display); font-size:.88rem; font-weight:700; color:white;">${fmtTime(m.kickoff_at)}</span>`;
+    }
 
-    // Sửa ngược tỉ số lượt về
     let aggHtml = "";
     if (m.agg_home != null && m.agg_away != null && m.leg === 2) {
         aggHtml = `<div style="font-size:.65rem;color:var(--color-text-muted);margin-top:2px">Tổng tỉ số: ${m.agg_away} - ${m.agg_home}</div>`;
@@ -105,11 +148,11 @@
     const eventsHtml = (events.length) ? renderEvents(events) : "";
     const hasEvents = events.length > 0;
 
-    return `<div class="card match-card" style="padding:16px 20px;${hasEvents?"cursor:pointer":""}">
-      <div style="display:grid; grid-template-columns: 1fr 40px 1fr; align-items:center; margin-bottom:12px; font-size:.75rem;">
+    return `<div class="card match-card" data-match-id="${m.id}" style="padding:16px 20px;${hasEvents?"cursor:pointer":""}">
+      <div style="display:grid; grid-template-columns: 1fr 60px 1fr; align-items:center; margin-bottom:12px; font-size:.75rem;">
         <span style="font-family:var(--font-display); font-weight:700; color:var(--color-text-muted);">${gwLabel}</span>
         <div style="display:flex; justify-content:center;">${statusHtml}</div>
-        <div style="display:flex; justify-content:flex-end; font-size:.65rem; color:var(--color-text-dim); font-family:var(--font-display);">
+        <div class="toggle-icon" style="display:flex; justify-content:flex-end; font-size:.65rem; color:var(--color-text-dim); font-family:var(--font-display);">
             ${hasEvents ? `▼ chi tiết` : ""}
         </div>
       </div>
@@ -127,51 +170,6 @@
       </div>
 
       ${eventsHtml ? `<div class="match-events" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--color-border)">${eventsHtml}</div>` : ""}
-    </div>`;
-  }
-
-  function renderEvents(events) {
-    const sortedEvents = [...events].sort((a, b) => {
-        const minA = parseInt(a.minute.toString().split('+')[0]);
-        const minB = parseInt(b.minute.toString().split('+')[0]);
-        return minA - minB;
-    });
-
-    function evIcon(type) {
-      const isUCL = league === "UCL";
-      // Sử dụng file ảnh nội bộ bạn cung cấp
-      const ballUrl = isUCL ? "/static/images/ucl-ball.png" : "/static/images/pl-ball.png";
-
-      const ballHtml = `<img src="${ballUrl}" width="16" height="16"
-                             style="vertical-align:middle; object-fit:contain;"
-                             onerror="this.outerHTML='⚽'">`;
-
-      if (type === "goal")         return ballHtml;
-      if (type === "penalty_goal") return ballHtml;
-      if (type === "penalty_miss") return `<span style="filter: grayscale(1); opacity:0.5;">${ballHtml}</span>`;
-      if (type === "own_goal")     return `<span style="filter: drop-shadow(0 0 2px #ef4444);">${ballHtml}</span>`;
-      if (type === "yellow_card")  return `<span style="display:inline-block;width:10px;height:14px;background:#f5a623;border-radius:2px;"></span>`;
-      if (type === "red_card")     return `<span style="display:inline-block;width:10px;height:14px;background:#ef4444;border-radius:2px;"></span>`;
-      return "";
-    }
-
-    return `<div style="display:flex; flex-direction:column; gap:10px;">
-      ${sortedEvents.map(e => {
-        const isHome = e.side === "home";
-        // Cấu trúc 3 cột: Trục giữa icon luôn thẳng hàng với chữ Kt
-        return `
-        <div style="display:grid; grid-template-columns: 1fr 40px 1fr; align-items:center; font-size:.82rem; font-family:var(--font-display);">
-          <div style="text-align:right; color:white; padding-right:12px;">
-            ${isHome ? `<span>${e.player} <span style="color:var(--color-text-muted); font-size:.72rem; margin-left:4px;">${e.minute}'</span></span>` : ""}
-          </div>
-          <div style="display:flex; justify-content:center; align-items:center;">
-            ${evIcon(e.type)}
-          </div>
-          <div style="text-align:left; color:white; padding-left:12px;">
-            ${!isHome ? `<span><span style="color:var(--color-text-muted); font-size:.72rem; margin-right:4px;">${e.minute}'</span> ${e.player}</span>` : ""}
-          </div>
-        </div>`;
-      }).join("")}
     </div>`;
   }
 
@@ -228,9 +226,10 @@
     loadMatches(false);
   }
 
-  async function loadMatches(append) {
+  async function loadMatches(append, isAutoRefresh = false) {
     const list = document.getElementById("matches-list");
-    if (!append) list.innerHTML = Array(5).fill('<div class="skeleton" style="height:100px;border-radius:12px"></div>').join("");
+    // Chỉ hiển thị skeleton khi load lần đầu, không hiển thị khi auto-refresh để tránh nháy giật trang
+    if (!append && !isAutoRefresh) list.innerHTML = Array(5).fill('<div class="skeleton" style="height:100px;border-radius:12px"></div>').join("");
 
     let url = `/api/matches/?league=${league}&season=2025&per_page=${PER_PAGE}&page=${page}`;
     if (status) url += `&status=${status}`;
@@ -241,19 +240,60 @@
       res = await fetch(url);
       data = await res.json();
     } catch(e) {
-      list.innerHTML = `<div class="card" style="padding:32px;text-align:center;color:white">Lỗi kết nối.</div>`;
+      if (!isAutoRefresh) list.innerHTML = `<div class="card" style="padding:32px;text-align:center;color:white">Lỗi kết nối.</div>`;
       return;
     }
 
     const items = data.items || [];
     totalPages = data.pages || 1;
-    const html = items.map(renderMatch).join("") ||
-      `<div class="card" style="padding:32px;text-align:center;color:white">Không có trận đấu.</div>`;
+
+    // Kiểm tra xem có trận nào đang đá không để bật auto-refresh
+    const hasLiveMatches = items.some(m => m.status === 'LIVE');
+    manageAutoRefresh(hasLiveMatches);
+
+    // Lưu lại trạng thái đóng/mở của các thẻ chi tiết trước khi render lại
+    const openCardIds = new Set();
+    if (isAutoRefresh) {
+        list.querySelectorAll('.match-card').forEach(card => {
+            const panel = card.querySelector('.match-events');
+            if (panel && panel.style.display === 'block') {
+                openCardIds.add(card.dataset.matchId);
+            }
+        });
+    }
+
+    const html = items.map(m => {
+        const renderedCard = renderMatch(m);
+        // Phục hồi trạng thái đóng/mở nếu thẻ đã được mở trước đó
+        if (openCardIds.has(m.id.toString())) {
+             return renderedCard.replace('style="display:none;', 'style="display:block;').replace('▼ chi tiết', '▲ ẩn');
+        }
+        return renderedCard;
+    }).join("") || `<div class="card" style="padding:32px;text-align:center;color:white">Không có trận đấu.</div>`;
 
     if (append) list.insertAdjacentHTML("beforeend", html);
     else list.innerHTML = html;
 
     document.getElementById("load-more").style.display = page < totalPages ? "" : "none";
+  }
+
+  // --- Fix 3: Thêm chức năng Auto-Refresh ngầm ---
+  function manageAutoRefresh(hasLiveMatches) {
+      // Chỉ tự động refresh nếu có trận đang live HOẶC người dùng đang chọn tab 'LIVE'
+      if (hasLiveMatches || status === "LIVE") {
+          if (!autoRefreshTimer) {
+              console.log("Bật Auto-Refresh (30s/lần)");
+              autoRefreshTimer = setInterval(() => {
+                  loadMatches(false, true);
+              }, 30000);
+          }
+      } else {
+          if (autoRefreshTimer) {
+              console.log("Tắt Auto-Refresh");
+              clearInterval(autoRefreshTimer);
+              autoRefreshTimer = null;
+          }
+      }
   }
 
   function setLeague(lg) {
@@ -280,11 +320,15 @@
     document.getElementById("matches-list").addEventListener("click", e => {
       const card = e.target.closest(".match-card");
       if (!card) return;
+
+      // Xử lý đóng/mở sự kiện
       const panel = card.querySelector(".match-events");
-      if (!panel) return;
-      panel.style.display = panel.style.display === "none" ? "block" : "none";
-      const arrowEl = card.querySelector("span[style*='▼'], span[style*='▲']");
-      if (arrowEl) arrowEl.textContent = panel.style.display === "none" ? "▼ chi tiết" : "▲ ẩn";
+      if (panel) {
+          const isHidden = panel.style.display === "none";
+          panel.style.display = isHidden ? "block" : "none";
+          const iconEl = card.querySelector(".toggle-icon");
+          if (iconEl) iconEl.textContent = isHidden ? "▲ ẩn" : "▼ chi tiết";
+      }
     });
 
     document.getElementById("status-tabs").addEventListener("click", e => {
@@ -320,8 +364,6 @@
         buttons[currentIndex + 1].scrollIntoView({ inline: "center", behavior: "smooth", block: "nearest" });
       }
     });
-
-    setInterval(() => { if (status === "LIVE") loadMatches(false); }, 30000);
   });
 })();
 </script>

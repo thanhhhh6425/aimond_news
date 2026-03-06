@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="AimondNews — Tin tức & số liệu bóng đá Premier League và UEFA Champions League 2025/26">
+  <meta name="google-site-verification" content="Yx_PKSvmmgk7FuH17TKk5GZMh7837gBHnd7vk7Copx0" />
   <title>{% block title %}AimondNews{% endblock %} — PL</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,7 +30,7 @@
     <nav class="header-nav" role="navigation" aria-label="Main navigation">
       <ul class="header-nav-list">
         <li><a href="/"           {% if request.path == '/' %}class="active"{% endif %}>Home</a></li>
-        <li><a href="/news"       {% if '/news' in request.path %}class="active"{% endif %}>Tin tức</a></li>
+        <li><a href="/news"       {% if '/news' in request.path %}class="active"{% endif %}>News</a></li>
         <li><a href="/matches"    {% if '/matches' in request.path %}class="active"{% endif %}>Matches</a></li>
         <li><a href="/table"      {% if '/table' in request.path %}class="active"{% endif %}>Table</a></li>
         <li id="nav-bracket" style="display:none"><a href="/bracket" {% if '/bracket' in request.path %}class="active"{% endif %}>Bracket</a></li>

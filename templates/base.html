@@ -38,8 +38,11 @@
         <li><a href="/players"    {% if '/players' in request.path %}class="active"{% endif %}>Players</a></li>
         <li><a href="/clubs"      {% if '/clubs' in request.path %}class="active"{% endif %}>Clubs</a></li>
       </ul>
+    </nav>
 
-      <div class="league-toggle" role="group" aria-label="League selector" style="margin-left:20px">
+    <div class="header-right" style="display:flex; align-items:center;">
+
+      <div class="league-toggle" role="group" aria-label="League selector" style="margin-right:15px;">
         <button class="league-toggle-btn active"
                 data-league-toggle="PL"
                 aria-pressed="true"
@@ -55,21 +58,19 @@
           <img src="/static/images/ucl-logo.png" alt="Champions League" width="22" height="22" style="object-fit:contain;">
         </button>
       </div>
-    </nav>
 
-    <div class="header-right" style="display:flex; align-items:center;">
       <button class="header-search-btn" data-search-open aria-label="Tìm kiếm">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
       </button>
 
-      <div class="auth-logged-out flex gap-sm" style="display:flex; align-items:center;">
+      <div class="auth-logged-out flex gap-sm" style="display:flex; align-items:center; margin-left: 10px;">
         <a href="/login"    class="btn-header-login" style="display:flex; align-items:center; justify-content:center; box-sizing:border-box; line-height:1;">Đăng nhập</a>
         <a href="/register" class="btn-header-register" style="display:flex; align-items:center; justify-content:center; box-sizing:border-box; line-height:1;">Đăng ký</a>
       </div>
 
-      <div class="auth-logged-in hidden flex gap-sm" style="display:flex; align-items:center;">
+      <div class="auth-logged-in hidden flex gap-sm" style="display:flex; align-items:center; margin-left: 10px;">
         <a href="/profile" style="display:flex;align-items:center;gap:8px;color:white">
           <div style="width:32px;height:32px;border-radius:50%;background:var(--color-surface-3);border:2px solid var(--color-accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:900;color:var(--color-accent);transition:all .3s;position:relative;overflow:hidden; box-sizing:border-box;">
             <img data-user-avatar src="" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:1;">
@@ -79,7 +80,7 @@
         <button onclick="Auth.logout()" class="btn-header-login" style="font-size:.75rem; display:flex; align-items:center; justify-content:center; box-sizing:border-box; line-height:1;">Logout</button>
       </div>
 
-      <button class="header-hamburger" aria-label="Menu" aria-expanded="false">
+      <button class="header-hamburger" aria-label="Menu" aria-expanded="false" style="margin-left: 10px;">
         <span></span><span></span><span></span>
       </button>
     </div>

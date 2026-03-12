@@ -42,7 +42,7 @@ def norm_name(name):
     parts = name.split()
     return " ".join(parts[:2]) if len(parts) >= 2 else parts[0]
 
-def fetch_espn_events(league_slug, date_from="20250801", date_to="20260301"):
+def fetch_espn_events(league_slug, date_from="20250801", date_to="20260601"):
     """Lay tat ca completed matches co events tu ESPN - fetch theo tung thang"""
     url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/{league_slug}/scoreboard"
     all_events = []

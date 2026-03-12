@@ -18,7 +18,7 @@ class Standing(db.Model):
     season = db.Column(db.String(10), nullable=False, default="2025", index=True)
 
     # UCL có thể có nhiều bảng (group A, B, C...)
-    group = db.Column(db.String(5), nullable=True, index=True)   # None = tổng, 'A'..'H'
+    group = db.Column(db.String(50), nullable=True, index=True)   # None = tổng, 'A'..'H'
     stage = db.Column(db.String(50), nullable=True)              # 'League Phase', 'Knockout'
 
     # Đội bóng

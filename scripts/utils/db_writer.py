@@ -8,6 +8,16 @@ from typing import Dict, List
 logger = logging.getLogger(__name__)
 
 
+def _load_clubs(db, Club, league):
+    """Load clubs dict, neu UCL thi fallback them PL clubs."""
+    clubs = {c.source_id: c for c in Club.query.filter_by(league=league).all()}
+    if league == "UCL":
+        for c in Club.query.filter_by(league="PL").all():
+            if c.source_id not in clubs:
+                clubs[c.source_id] = c
+    return clubs
+
+
 class DBWriter:
     def __init__(self):
         pass
@@ -52,7 +62,6 @@ class DBWriter:
                 if not source_id: continue
                 club = clubs.get(source_id)
                 if not club:
-                    # Tao club don gian voi name tu standings record
                     club = Club(
                         source_id=source_id, league=league, season=season,
                         name=r.get("team_name",""), short_name=r.get("team_short",""),
@@ -91,7 +100,6 @@ class DBWriter:
         count = 0
         for r in records:
             try:
-                # Match model dung source_id, home_team_name, kickoff_at
                 source_id = str(r.get("source_id", r.get("match_id",""))).strip()
                 season = r.get("season","2025")
                 if not source_id: continue
@@ -130,7 +138,7 @@ class DBWriter:
         from app.extensions import db
         from app.models import Player, Club, Statistic
 
-        clubs = {c.source_id: c for c in Club.query.filter_by(league=league).all()}
+        clubs = _load_clubs(db, Club, league)
         existing = {p.source_id: p for p in Player.query.filter_by(league=league, season="2025").all()}
 
         count = 0
@@ -197,7 +205,7 @@ class DBWriter:
             except Exception as e:
                 logger.error(f"[DBWriter.players] {e} | {r.get('source_id')} {r.get('name')}")
                 db.session.rollback()
-                clubs = {c.source_id: c for c in Club.query.filter_by(league=league).all()}
+                clubs = _load_clubs(db, Club, league)
                 existing = {p.source_id: p for p in Player.query.filter_by(league=league, season="2025").all()}
 
         try:

@@ -1,6 +1,5 @@
 """
 scripts/utils/db_writer.py - Ghi du lieu vao database
-Viet lai hoan toan: don gian, ro rang, khong bug.
 """
 import logging
 from datetime import datetime, timezone, date
@@ -198,6 +197,7 @@ class DBWriter:
             except Exception as e:
                 logger.error(f"[DBWriter.players] {e} | {r.get('source_id')} {r.get('name')}")
                 db.session.rollback()
+                clubs = {c.source_id: c for c in Club.query.filter_by(league=league).all()}
                 existing = {p.source_id: p for p in Player.query.filter_by(league=league, season="2025").all()}
 
         try:

@@ -1,14 +1,14 @@
-import sys, os
-os.environ["DISABLE_SCHEDULER"] = "1"
-sys.path.insert(0, ".")
-from dotenv import load_dotenv
-load_dotenv()
-from app import create_app
-app = create_app()
-with app.app_context():
-    from app.models import Match
-    rows = (Match.query.filter_by(league="PL", season="2025", matchweek=29)
-            .order_by(Match.kickoff_at).all())
-    for r in rows:
-        has_events = bool(r.events_json)
-        print(f"{r.home_team_name} vs {r.away_team_name} | {r.status} | events={'YES' if has_events else 'NO'}")
+import requests, urllib3, json
+urllib3.disable_warnings()
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/134.0.0.0 Safari/537.36",
+    "Accept": "application/json",
+    "Referer": "https://www.fotmob.com/",
+}
+
+r = requests.get("https://www.fotmob.com/api/data/leagues?id=42", headers=HEADERS, verify=False, timeout=10)
+data = r.json()
+print("Top keys:", list(data.keys()))
+print("playoff:", data.get("playoff"))
+print("tabs:", data.get("tabs", [])[:3])

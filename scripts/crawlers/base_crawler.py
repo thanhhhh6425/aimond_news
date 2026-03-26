@@ -16,7 +16,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = logging.getLogger(__name__)
 
-FOTMOB_BASE = "https://www.fotmob.com/api"
+FOTMOB_BASE = "https://www.fotmob.com/api/data"
 FOTMOB_LEAGUE_IDS = {"PL": 47, "UCL": 42}
 
 FOTMOB_HEADERS = {

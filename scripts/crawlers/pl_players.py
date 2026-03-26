@@ -159,7 +159,7 @@ class PLPlayersCrawler(BaseFotMobCrawler):
     def _fetch_squad(self, team_id: str, players: dict):
         """Fetch squad cua 1 doi va cap nhat thong tin ca nhan."""
         try:
-            data = self._get(f"https://www.fotmob.com/api/teams?id={team_id}")
+            data = self._get(f"https://www.fotmob.com/api/data/teams?id={team_id}")
             if not data:
                 return
             squad_sections = data.get("squad", {}).get("squad", [])

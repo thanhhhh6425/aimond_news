@@ -111,7 +111,7 @@ def get_bracket():
         "Referer": "https://www.fotmob.com/",
     }
     try:
-        r = requests.get("https://www.fotmob.com/api/leagues?id=42",
+        r = requests.get("https://www.fotmob.com/api/data/leagues?id=42",
                          headers=headers, verify=False, timeout=15)
         data = r.json()
     except Exception as e:

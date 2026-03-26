@@ -41,7 +41,7 @@ class PLClubsCrawler(BaseFotMobCrawler):
 
     def _fetch_club(self, team_id: str, name: str, short: str) -> Optional[Dict]:
         try:
-            data = self._get(f"https://www.fotmob.com/api/teams?id={team_id}")
+            data = self._get(f"https://www.fotmob.com/api/data/teams?id={team_id}")
             if not data:
                 return None
 

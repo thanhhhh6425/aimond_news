@@ -140,7 +140,7 @@ class UCLPlayersCrawler(PLPlayersCrawler):
 
     def _fetch_squad_ucl(self, team_id: str, players: dict):
         try:
-            data = self._get(f"https://www.fotmob.com/api/teams?id={team_id}")
+            data = self._get(f"https://www.fotmob.com/api/data/teams?id={team_id}")
             if not data:
                 return
             squad_sections = data.get("squad", {}).get("squad", [])
@@ -170,5 +170,21 @@ class UCLPlayersCrawler(PLPlayersCrawler):
                         "team_name":     team_name,
                         "photo_url":     f"https://images.fotmob.com/image_resources/playerimages/{pid}.png",
                     })
+                    # Cap nhat stats tu squad
+                    squad_goals = self.safe_int(member.get("goals", 0))
+                    squad_assists = self.safe_int(member.get("assists", 0))
+                    squad_ycards = self.safe_int(member.get("ycards", 0))
+                    squad_rcards = self.safe_int(member.get("rcards", 0))
+                    squad_rating = member.get("rating") or 0.0
+                    if squad_goals > players[pid].get("goals", 0):
+                        players[pid]["goals"] = squad_goals
+                    if squad_assists > players[pid].get("assists", 0):
+                        players[pid]["assists"] = squad_assists
+                    if squad_ycards > players[pid].get("yellow_cards", 0):
+                        players[pid]["yellow_cards"] = squad_ycards
+                    if squad_rcards > players[pid].get("red_cards", 0):
+                        players[pid]["red_cards"] = squad_rcards
+                    if squad_rating and not players[pid].get("average_rating"):
+                        players[pid]["average_rating"] = self.safe_float(squad_rating)
         except Exception as e:
             logger.debug(f"[UCLPlayers] Squad team {team_id}: {e}")

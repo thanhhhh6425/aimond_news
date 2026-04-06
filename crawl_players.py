@@ -205,7 +205,7 @@ def crawl_squad(league_id):
     logging.info(f"  Fetching squad for {len(club_ids)} clubs...")
 
     for cid in sorted(club_ids):
-        team = fetch(f"https://www.fotmob.com/api/teams?id={cid}")
+        team = fetch(f"https://www.fotmob.com/api/data/teams?id={cid}")
         if not team: continue
         squad_data = (team.get("squad") or {}).get("squad") or []
         for section in squad_data:
@@ -264,7 +264,7 @@ with app.app_context():
                     cid = m.get(key,{}).get("id")
                     if cid: club_ids_for_gk.add(str(cid))
         for cid in sorted(club_ids_for_gk):
-            team = fetch(f"https://www.fotmob.com/api/teams?id={cid}")
+            team = fetch(f"https://www.fotmob.com/api/data/teams?id={cid}")
             if not team: continue
             club = clubs.get(cid)
             for section in ((team.get("squad") or {}).get("squad") or []):

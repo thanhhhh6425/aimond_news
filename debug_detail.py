@@ -3,12 +3,19 @@ urllib3.disable_warnings()
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/134.0.0.0 Safari/537.36",
-    "Accept": "application/json",
     "Referer": "https://www.fotmob.com/",
 }
 
-r = requests.get("https://www.fotmob.com/api/data/leagues?id=42", headers=HEADERS, verify=False, timeout=10)
+r = requests.get("https://www.fotmob.com/api/data/teams?id=8456", headers=HEADERS, verify=False, timeout=10)
 data = r.json()
-print("Top keys:", list(data.keys()))
-print("playoff:", data.get("playoff"))
-print("tabs:", data.get("tabs", [])[:3])
+squad = data.get("squad", {})
+inner = squad.get("squad", [])
+
+# Duyet tat ca group, tim cau thu co stats
+for group in inner:
+    title = group.get("title", "")
+    members = group.get("members", [])
+    print(f"\n--- {title}: {len(members)} members ---")
+    for m in members[:2]:
+        print(json.dumps(m, indent=2)[:600])
+        print("---")

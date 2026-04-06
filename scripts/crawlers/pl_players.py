@@ -4,7 +4,7 @@ Cao cu thu Premier League tu FotMob.
 
 Nguon du lieu:
   1. data.fotmob.com/stats/47/season/27110/*.json  -> stats tung cau thu
-  2. fotmob.com/api/teams?id=<id>                  -> squad + thong tin ca nhan
+  2. fotmob.com/api/data/teams?id=<id>                  -> squad + thong tin ca nhan
   3. overview.topPlayers                            -> top goals/assists/rating
 """
 from typing import Dict, List, Optional
@@ -190,6 +190,24 @@ class PLPlayersCrawler(BaseFotMobCrawler):
                         "team_name": team_name,
                         "photo_url": f"https://images.fotmob.com/image_resources/playerimages/{pid}.png",
                     })
+                    # Cap nhat stats tu squad (day du hon stats URL)
+                    squad_goals = self.safe_int(member.get("goals", 0))
+                    squad_assists = self.safe_int(member.get("assists", 0))
+                    squad_ycards = self.safe_int(member.get("ycards", 0))
+                    squad_rcards = self.safe_int(member.get("rcards", 0))
+                    squad_rating = member.get("rating") or 0.0
+
+                    # Chi ghi de neu stats URL chua co (=0) hoac squad co gia tri lon hon
+                    if squad_goals > players[pid].get("goals", 0):
+                        players[pid]["goals"] = squad_goals
+                    if squad_assists > players[pid].get("assists", 0):
+                        players[pid]["assists"] = squad_assists
+                    if squad_ycards > players[pid].get("yellow_cards", 0):
+                        players[pid]["yellow_cards"] = squad_ycards
+                    if squad_rcards > players[pid].get("red_cards", 0):
+                        players[pid]["red_cards"] = squad_rcards
+                    if squad_rating and not players[pid].get("average_rating"):
+                        players[pid]["average_rating"] = self.safe_float(squad_rating)
         except Exception as e:
             logger.debug(f"[PLPlayers] Squad fetch error team {team_id}: {e}")
 

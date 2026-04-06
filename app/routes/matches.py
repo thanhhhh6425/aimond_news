@@ -68,8 +68,9 @@ def get_results():
 
 @matches_bp.route("/rounds", methods=["GET"])
 def get_rounds():
-    """Tra ve danh sach vong dau unique de hien thi GW bar."""
+    """Tra ve danh sach vong dau + current_round tro ve vong sap toi."""
     from app.extensions import db
+    from datetime import datetime, timezone
     league = request.args.get("league", "PL").upper()
     season = request.args.get("season", "2025")
 
@@ -81,20 +82,42 @@ def get_rounds():
             .all())
 
     UCL_LABELS = {
-        1:"Vòng 1",2:"Vòng 2",3:"Vòng 3",4:"Vòng 4",
-        5:"Vòng 5",6:"Vòng 6",7:"Vòng 7",8:"Vòng 8",
-        9:"Playoff",10:"Vòng 1/8",11:"Tứ kết",12:"Bán kết",13:"Chung kết"
+        1:"Vòng 1", 2:"Vòng 2", 3:"Vòng 3", 4:"Vòng 4",
+        5:"Vòng 5", 6:"Vòng 6", 7:"Vòng 7", 8:"Vòng 8",
+        9:"Playoff", 10:"Vòng 1/8", 11:"Tứ kết", 12:"Bán kết", 13:"Chung kết"
     }
 
     rounds = []
     for mw, rnd in rows:
-        if league == "UCL":
-            label = UCL_LABELS.get(mw, rnd or f"Vòng {mw}")
-        else:
-            label = f"GW {mw}"
+        label = UCL_LABELS.get(mw, rnd or f"Vòng {mw}") if league == "UCL" else f"GW {mw}"
         rounds.append({"matchweek": mw, "label": label, "round": rnd})
 
-    return jsonify({"rounds": rounds, "league": league})
+    # Tim current_round: vong co tran SCHEDULED gan nhat tinh tu hien tai
+    next_match = (Match.query
+                  .filter(Match.league == league, Match.season == season)
+                  .filter(Match.status == "SCHEDULED")
+                  .filter(Match.matchweek != None)
+                  .filter(Match.kickoff_at != None)
+                  .order_by(Match.kickoff_at.asc())
+                  .first())
+
+    if next_match:
+        current_round = next_match.matchweek
+    else:
+        # Het lich: lay vong cuoi cung da thi dau
+        last = (Match.query
+                .filter(Match.league == league, Match.season == season)
+                .filter(Match.status == "FT")
+                .filter(Match.matchweek != None)
+                .order_by(Match.matchweek.desc())
+                .first())
+        current_round = last.matchweek if last else (rounds[-1]["matchweek"] if rounds else 1)
+
+    return jsonify({
+        "rounds": rounds,
+        "league": league,
+        "current_round": current_round
+    })
 
 @matches_bp.route("/bracket", methods=["GET"])
 def get_bracket():
@@ -144,7 +167,6 @@ def get_bracket():
             winner = mu.get("aggregatedWinner")
             loser  = mu.get("aggregatedLoser")
 
-            # Parse 2 matches (leg1, leg2)
             matches = []
             for i, m in enumerate(mu.get("matches", [])):
                 mh = m.get("home", {})
@@ -177,7 +199,6 @@ def get_bracket():
                     "away_winner": ma.get("winner", False),
                 })
 
-            # TBD teams (vong sau chua biet)
             tbd1 = mu.get("tbdTeam1", False)
             tbd2 = mu.get("tbdTeam2", False)
             home_name = mu.get("homeTeam") or (mu.get("homeTeamPlaceholder") if tbd1 else None)

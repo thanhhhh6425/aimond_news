@@ -153,12 +153,21 @@ class UCLPlayersCrawler(PLPlayersCrawler):
                     if not pid:
                         continue
                     if pid not in players:
-                        players[pid] = self._base_player(pid, {
-                            "name": member.get("name", ""),
-                            "teamId": team_id,
-                            "teamName": team_name,
-                        })
-                        players[pid]["league"] = "UCL"
+                        players[pid] = {
+                            "league": "UCL",
+                            "season": self.SEASON,
+                            "source_id": pid,
+                            "name": self.clean(member.get("name", "")),
+                            "team_source_id": team_id,
+                            "team_name": team_name,
+                            "position": "FWD",
+                            "nationality": "",
+                            "photo_url": f"https://images.fotmob.com/image_resources/playerimages/{pid}.png",
+                            "goals": 0, "assists": 0, "saves": 0, "clean_sheets": 0,
+                            "yellow_cards": 0, "red_cards": 0, "appearances": 0,
+                            "minutes_played": 0, "average_rating": 0.0, "expected_goals": 0.0,
+                            "shirt_number": None, "date_of_birth": "", "height_cm": None,
+                        }
                     players[pid].update({
                         "name":          self.clean(member.get("name", players[pid].get("name",""))),
                         "shirt_number":  self.safe_int(member.get("shirtNumber", 0)) or None,

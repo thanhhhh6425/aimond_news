@@ -1,7 +1,9 @@
-call venv\Scripts\activate
-python crawl_players.py
 python crawl_matches.py
-python crawl_news.py
+python scripts\run_all.py --only clubs
+python scripts\run_all.py --only players
+python scripts\run_all.py --only standings
 python crawl_events.py
-echo Done!
-pause
+python crawl_news.py
+git add .
+git commit -m "update: full data refresh"
+git push

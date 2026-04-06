@@ -1,21 +1,14 @@
-import requests, urllib3, json
-urllib3.disable_warnings()
-
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/134.0.0.0 Safari/537.36",
-    "Referer": "https://www.fotmob.com/",
-}
-
-r = requests.get("https://www.fotmob.com/api/data/teams?id=8456", headers=HEADERS, verify=False, timeout=10)
-data = r.json()
-squad = data.get("squad", {})
-inner = squad.get("squad", [])
-
-# Duyet tat ca group, tim cau thu co stats
-for group in inner:
-    title = group.get("title", "")
-    members = group.get("members", [])
-    print(f"\n--- {title}: {len(members)} members ---")
-    for m in members[:2]:
-        print(json.dumps(m, indent=2)[:600])
-        print("---")
+import os
+os.environ["DISABLE_SCHEDULER"] = "1"
+from app import create_app
+from app.extensions import db
+app = create_app()
+with app.app_context():
+    from app.models import Player
+    # Kiem tra 1 cau thu UCL cu the
+    players = Player.query.filter_by(league="UCL", season="2025").filter(
+        Player.shirt_number != None
+    ).limit(5).all()
+    print(f"UCL players with shirt_number: {Player.query.filter_by(league='UCL',season='2025').filter(Player.shirt_number!=None).count()}")
+    for p in players:
+        print(f"  {p.name} | shirt={p.shirt_number} | nationality={p.nationality}")

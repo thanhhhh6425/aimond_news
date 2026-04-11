@@ -1,14 +1,15 @@
-import os
-os.environ["DISABLE_SCHEDULER"] = "1"
-from app import create_app
-from app.extensions import db
-app = create_app()
-with app.app_context():
-    from app.models import Player
-    # Kiem tra 1 cau thu UCL cu the
-    players = Player.query.filter_by(league="UCL", season="2025").filter(
-        Player.shirt_number != None
-    ).limit(5).all()
-    print(f"UCL players with shirt_number: {Player.query.filter_by(league='UCL',season='2025').filter(Player.shirt_number!=None).count()}")
-    for p in players:
-        print(f"  {p.name} | shirt={p.shirt_number} | nationality={p.nationality}")
+import requests, urllib3
+urllib3.disable_warnings()
+
+HEADERS = {"User-Agent": "Mozilla/5.0", "Accept": "application/json"}
+
+r = requests.get(
+    "https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.champions/scoreboard",
+    params={"limit": 50, "dates": "20260407-20260415"},
+    headers=HEADERS, verify=False, timeout=15
+)
+events = r.json().get("events", [])
+print(f"Events: {len(events)}")
+for e in events[:5]:
+    season = e.get("season", {})
+    print(f"  {e.get('name')} | slug={season.get('slug')} | week={e.get('week')}")

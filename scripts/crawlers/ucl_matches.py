@@ -159,8 +159,8 @@ class UCLMatchesCrawler(BaseFotMobCrawler):
                 "7":"League Phase","8":"League Phase",
                 "playoff":"Knockout Playoffs",
                 "Round of 16":"Vòng 1/8","round_of_16":"Vòng 1/8",
-                "Quarter-finals":"Tứ kết","quarterfinals":"Tứ kết",
-                "Semi-finals":"Bán kết","semifinals":"Bán kết",
+                "Quarter-finals":"Tứ kết","quarterfinals":"Tứ kết","Quarter-Finals":"Tứ kết",
+                "Semi-finals":"Bán kết","semifinals":"Bán kết","Semi-Finals":"Bán kết",
                 "Final":"Chung kết",
             }
             round_name = UCL_ROUND_MAP.get(round_str, UCL_ROUND_MAP.get(round_name_raw, round_name_raw or "League Phase"))
@@ -172,9 +172,9 @@ class UCLMatchesCrawler(BaseFotMobCrawler):
             ROUND_TO_WEEK = {
                 "playoff": 9, "Knockout Playoffs": 9,
                 "Round of 16": 10, "round_of_16": 10,
-                "Quarter-finals": 11, "quarterfinals": 11,
-                "Semi-finals": 12, "semifinals": 12,
-                "Final": 13,
+                "Quarter-finals": 11, "quarterfinals": 11, "Quarter-Finals": 11,
+                "Semi-finals": 12, "semifinals": 12, "Semi-Finals": 12,
+                "Final": 13, "Finals": 13,
             }
             if round_str.isdigit():
                 matchweek = int(round_str)

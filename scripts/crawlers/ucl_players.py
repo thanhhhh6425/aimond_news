@@ -1,6 +1,7 @@
 """
 scripts/crawlers/ucl_players.py
-Cao cu thu Champions League - UCL 2025/26 (season 28184).
+Cào cầu thủ Champions League - UCL.
+ĐÃ NÂNG CẤP: Tự động phát hiện Season ID mới nhất của FotMob!
 """
 from typing import Dict, List
 from scripts.crawlers.pl_players import PLPlayersCrawler
@@ -8,23 +9,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-UCL_SEASON_ID = 28184
 UCL_LEAGUE_ID = 42
 
-STAT_URLS_UCL = [
-    ("goals",        f"https://data.fotmob.com/stats/{UCL_LEAGUE_ID}/season/{UCL_SEASON_ID}/goals.json"),
-    ("assists",      f"https://data.fotmob.com/stats/{UCL_LEAGUE_ID}/season/{UCL_SEASON_ID}/goal_assist.json"),
-    ("rating",       f"https://data.fotmob.com/stats/{UCL_LEAGUE_ID}/season/{UCL_SEASON_ID}/rating.json"),
-    ("mins_played",  f"https://data.fotmob.com/stats/{UCL_LEAGUE_ID}/season/{UCL_SEASON_ID}/mins_played.json"),
-    ("clean_sheets", f"https://data.fotmob.com/stats/{UCL_LEAGUE_ID}/season/{UCL_SEASON_ID}/clean_sheet.json"),
-    ("saves",        f"https://data.fotmob.com/stats/{UCL_LEAGUE_ID}/season/{UCL_SEASON_ID}/saves.json"),
-    ("yellow_cards", f"https://data.fotmob.com/stats/{UCL_LEAGUE_ID}/season/{UCL_SEASON_ID}/yellow_card.json"),
-    ("red_cards",    f"https://data.fotmob.com/stats/{UCL_LEAGUE_ID}/season/{UCL_SEASON_ID}/red_card.json"),
-]
-
-
 def _ucl_base(pid: str, season: str, name: str = "", team_id: str = "", team_name: str = "") -> Dict:
-    """Tao base player dict voi league=UCL."""
+    """Tạo base player dict với league=UCL."""
     return {
         "league":         "UCL",
         "season":         season,
@@ -41,15 +29,45 @@ def _ucl_base(pid: str, season: str, name: str = "", team_id: str = "", team_nam
         "shirt_number": None, "date_of_birth": "", "height_cm": None,
     }
 
-
 class UCLPlayersCrawler(PLPlayersCrawler):
     LEAGUE = "UCL"
 
     def parse(self, data: Dict) -> List[Dict]:
         players: Dict[str, Dict] = {}
+        overview = data.get("overview", {})
+
+        # ── 0. AUTO DETECT SEASON ID ─────────────────────────────────
+        # FotMob thường xuyên đổi ID mùa giải. Ta lấy ID động từ API!
+        active_season_id = "28184" # Fallback phòng hờ
+        try:
+            see_all = overview.get("topPlayers", {}).get("seeAllUrl", "")
+            if not see_all:
+                for cat, cat_data in overview.get("topPlayers", {}).items():
+                    if isinstance(cat_data, dict) and "seeAllUrl" in cat_data:
+                        see_all = cat_data["seeAllUrl"]
+                        break
+
+            if see_all and "/season/" in see_all:
+                # Cắt chuỗi "/leagues/42/stats/season/XXXXX/players/..." để lấy XXXXX
+                active_season_id = see_all.split("/season/")[1].split("/")[0]
+                logger.info(f"[UCLPlayers] AUTO DETECTED SEASON ID: {active_season_id}")
+        except Exception as e:
+            logger.warning(f"[UCLPlayers] Auto-detect season ID failed: {e}")
+
+        # Tạo danh sách URL thống kê ĐỘNG với Season ID chuẩn nhất
+        dynamic_stat_urls = [
+            ("rating",       f"https://data.fotmob.com/stats/{UCL_LEAGUE_ID}/season/{active_season_id}/rating.json"),
+            ("goals",        f"https://data.fotmob.com/stats/{UCL_LEAGUE_ID}/season/{active_season_id}/goals.json"),
+            ("assists",      f"https://data.fotmob.com/stats/{UCL_LEAGUE_ID}/season/{active_season_id}/goal_assist.json"),
+            ("mins_played",  f"https://data.fotmob.com/stats/{UCL_LEAGUE_ID}/season/{active_season_id}/mins_played.json"),
+            ("clean_sheets", f"https://data.fotmob.com/stats/{UCL_LEAGUE_ID}/season/{active_season_id}/clean_sheet.json"),
+            ("saves",        f"https://data.fotmob.com/stats/{UCL_LEAGUE_ID}/season/{active_season_id}/saves.json"),
+            ("yellow_cards", f"https://data.fotmob.com/stats/{UCL_LEAGUE_ID}/season/{active_season_id}/yellow_card.json"),
+            ("red_cards",    f"https://data.fotmob.com/stats/{UCL_LEAGUE_ID}/season/{active_season_id}/red_card.json"),
+        ]
 
         # ── 1. Stats URLs ────────────────────────────────────────────
-        for stat_key, url in STAT_URLS_UCL:
+        for stat_key, url in dynamic_stat_urls:
             try:
                 stat_data = self._get(url)
                 if not stat_data:
@@ -74,19 +92,14 @@ class UCLPlayersCrawler(PLPlayersCrawler):
                                 players[pid]["team_source_id"] = str(entry.get("TeamId", ""))
                                 players[pid]["team_name"] = self.clean(entry.get("TeamName", ""))
 
-                        # Position tu Positions array
                         positions = entry.get("Positions", [])
                         if positions and not players[pid].get("_positions"):
                             players[pid]["_positions"] = positions
                             pos_id = positions[0] if positions else 0
-                            if pos_id == 11:
-                                players[pid]["position"] = "GK"
-                            elif pos_id in range(32, 64):
-                                players[pid]["position"] = "DEF"
-                            elif pos_id in range(64, 83):
-                                players[pid]["position"] = "MID"
-                            elif pos_id in list(range(83, 108)) + [115]:
-                                players[pid]["position"] = "FWD"
+                            if pos_id == 11: players[pid]["position"] = "GK"
+                            elif pos_id in range(32, 64): players[pid]["position"] = "DEF"
+                            elif pos_id in range(64, 83): players[pid]["position"] = "MID"
+                            elif pos_id in list(range(83, 108)) + [115]: players[pid]["position"] = "FWD"
 
                         val = entry.get("StatValue", 0)
                         if stat_key == "goals":
@@ -115,21 +128,20 @@ class UCLPlayersCrawler(PLPlayersCrawler):
                 logger.debug(f"[UCLPlayers] Stat {stat_key} error: {e}")
 
         # ── 2. TopPlayers bo sung neu chua co ────────────────────────
-        overview = data.get("overview", {})
         for category, cat_data in overview.get("topPlayers", {}).items():
             if category == "seeAllUrl":
                 continue
             for p in cat_data.get("players", []):
                 pid = str(p.get("id", ""))
-                if not pid:
-                    continue
+                if not pid: continue
                 if pid not in players:
                     players[pid] = _ucl_base(pid, self.SEASON, name=self.clean(p.get("name", "")))
-                if category == "byGoals" and not players[pid].get("goals"):
+
+                if category == "byGoals" and players[pid].get("goals", 0) == 0:
                     players[pid]["goals"] = self.safe_int(p.get("goals", p.get("value", 0)))
-                elif category == "byAssists" and not players[pid].get("assists"):
+                elif category == "byAssists" and players[pid].get("assists", 0) == 0:
                     players[pid]["assists"] = self.safe_int(p.get("assists", p.get("value", 0)))
-                elif category == "byRating" and not players[pid].get("average_rating"):
+                elif category == "byRating" and players[pid].get("average_rating", 0.0) == 0.0:
                     players[pid]["average_rating"] = self.safe_float(p.get("rating", p.get("value", 0)))
 
         # ── 3. Squad tu fixtures clubs ───────────────────────────────
@@ -140,7 +152,7 @@ class UCLPlayersCrawler(PLPlayersCrawler):
             if h: club_ids.add(str(h))
             if a: club_ids.add(str(a))
 
-        for cid in list(club_ids)[:36]:
+        for cid in list(club_ids)[:36]: # UCL format mới có 36 đội
             self._fetch_squad_ucl(cid, players)
 
         results = list(players.values())
@@ -150,20 +162,16 @@ class UCLPlayersCrawler(PLPlayersCrawler):
     def _fetch_squad_ucl(self, team_id: str, players: dict):
         try:
             data = self._get(f"https://www.fotmob.com/api/data/teams?id={team_id}")
-            if not data:
-                return
+            if not data: return
             squad_sections = data.get("squad", {}).get("squad", [])
             team_name = data.get("details", {}).get("name", "")
 
             for section in squad_sections:
-                if section.get("title", "").lower() in ("coach", "coaches"):
-                    continue
+                if section.get("title", "").lower() in ("coach", "coaches"): continue
                 for member in section.get("members", []):
                     pid = str(member.get("id", ""))
-                    if not pid:
-                        continue
+                    if not pid: continue
 
-                    # Tao moi neu chua co – dam bao league=UCL
                     if pid not in players:
                         players[pid] = _ucl_base(
                             pid, self.SEASON,
@@ -172,9 +180,8 @@ class UCLPlayersCrawler(PLPlayersCrawler):
                             team_name=team_name,
                         )
 
-                    # Cap nhat thong tin ca nhan
                     players[pid].update({
-                        "league":        "UCL",  # dam bao luon dung
+                        "league":        "UCL",
                         "name":          self.clean(member.get("name", players[pid].get("name", ""))),
                         "shirt_number":  self.safe_int(member.get("shirtNumber", 0)) or None,
                         "position":      self.map_position(member.get("role", {}).get("key", "")),
@@ -185,24 +192,5 @@ class UCLPlayersCrawler(PLPlayersCrawler):
                         "team_name":     team_name,
                         "photo_url":     f"https://images.fotmob.com/image_resources/playerimages/{pid}.png",
                     })
-
-                    # Cap nhat stats tu squad (lay tat ca, uu tien gia tri lon hon)
-                    squad_goals   = self.safe_int(member.get("goals", 0))
-                    squad_assists = self.safe_int(member.get("assists", 0))
-                    squad_ycards  = self.safe_int(member.get("ycards", 0))
-                    squad_rcards  = self.safe_int(member.get("rcards", 0))
-                    squad_rating  = self.safe_float(member.get("rating") or 0.0)
-
-                    if squad_goals > players[pid].get("goals", 0):
-                        players[pid]["goals"] = squad_goals
-                    if squad_assists > players[pid].get("assists", 0):
-                        players[pid]["assists"] = squad_assists
-                    if squad_ycards > players[pid].get("yellow_cards", 0):
-                        players[pid]["yellow_cards"] = squad_ycards
-                    if squad_rcards > players[pid].get("red_cards", 0):
-                        players[pid]["red_cards"] = squad_rcards
-                    if squad_rating and not players[pid].get("average_rating"):
-                        players[pid]["average_rating"] = squad_rating
-
         except Exception as e:
             logger.debug(f"[UCLPlayers] Squad team {team_id}: {e}")

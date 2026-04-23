@@ -224,7 +224,8 @@ def chat():
 
 def _gemini_reply(msg: str, api_key: str, history: list = []) -> str:
     from google import genai
-    client = genai.Client(api_key=api_key)
+    # SDK mới tự động lấy key từ biến môi trường (GEMINI_API_KEY hoặc GOOGLE_API_KEY)
+    client = genai.Client()
 
     db_context = _get_full_context()
 
@@ -241,28 +242,29 @@ NGUYÊN TẮC:
 DỮ LIỆU THỰC TẾ:
 {db_context}"""
 
-    # Build contents: system + history + current message
-    contents = [{"role": "user", "parts": [{"text": system_prompt + "\n\nBắt đầu hội thoại."}]},
-                {"role": "model", "parts": [{"text": "Xin chào! Tôi là AAA. Tôi có thể giúp gì cho bạn?"}]}]
+    # Xây dựng prompt hoàn chỉnh: system + lịch sử + câu hỏi hiện tại
+    contents = [system_prompt]
 
-    # Them lich su hoi thoai
-    for h in history[-10:]:  # toi da 10 luot gan nhat
+    for h in history[-10:]:
         role = "user" if h.get("role") == "user" else "model"
-        contents.append({"role": role, "parts": [{"text": h.get("content", "")}]})
+        contents.append(f"{role}: {h.get('content', '')}")
 
-    # Them cau hoi hien tai
-    contents.append({"role": "user", "parts": [{"text": msg}]})
+    contents.append(f"user: {msg}")
 
-    for model_name in ["models/gemini-2.5-flash", "models/gemini-2.0-flash-lite-001", "models/gemini-2.0-flash-001"]:
+    full_prompt = "\n".join(contents)
+
+    # Danh sách model mới, ổn định
+    models = ["gemini-2.5-flash", "gemini-2.0-flash-lite"]
+    for model_name in models:
         try:
-            response = client.models.generate_content(model=model_name, contents=contents)
+            response = client.models.generate_content(model=model_name, contents=full_prompt)
             return response.text.strip()
         except Exception as e:
-            if "404" in str(e):
+            if "404" in str(e) or "not found" in str(e).lower():
                 continue
             raise
 
-    raise Exception("No model available")
+    raise Exception("No available Gemini model found. Please check your API key and internet connection.")
 
 
 def _normalize(text: str) -> str:

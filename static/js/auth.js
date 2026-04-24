@@ -56,8 +56,15 @@ const Auth = (() => {
 
   // ── DOM updates ────────────────────────────────────────
   function _renderLoggedIn(user) {
-    document.querySelectorAll('.auth-logged-out').forEach(el => el.classList.add('hidden'));
-    document.querySelectorAll('.auth-logged-in').forEach(el => el.classList.remove('hidden'));
+    // Desktop and mobile auth containers
+    document.querySelectorAll('.header-right .auth-logged-out').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.header-right .auth-logged-in').forEach(el => el.classList.remove('hidden'));
+
+    // Mobile auth containers (inside .auth-mobile)
+    document.querySelectorAll('.auth-mobile .auth-logged-out').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.auth-mobile .auth-logged-in').forEach(el => el.classList.remove('hidden'));
+
+    // Update user info elements
     document.querySelectorAll('[data-user-name]').forEach(el => {
       el.textContent = user.full_name || user.username;
     });
@@ -65,20 +72,24 @@ const Auth = (() => {
       if (user.avatar_url) {
         el.src = user.avatar_url;
         el.style.display = "";
-        // An text initials
-        const span = el.parentElement.querySelector('[data-user-name]');
+        const span = el.parentElement?.querySelector('[data-user-name]');
         if (span) span.style.display = "none";
       } else {
         el.style.display = "none";
-        const span = el.parentElement.querySelector('[data-user-name]');
+        const span = el.parentElement?.querySelector('[data-user-name]');
         if (span) span.style.display = "";
       }
     });
   }
 
   function _renderLoggedOut() {
-    document.querySelectorAll('.auth-logged-in').forEach(el => el.classList.add('hidden'));
-    document.querySelectorAll('.auth-logged-out').forEach(el => el.classList.remove('hidden'));
+    // Desktop
+    document.querySelectorAll('.header-right .auth-logged-in').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.header-right .auth-logged-out').forEach(el => el.classList.remove('hidden'));
+
+    // Mobile
+    document.querySelectorAll('.auth-mobile .auth-logged-in').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.auth-mobile .auth-logged-out').forEach(el => el.classList.remove('hidden'));
   }
 
   // ── Form binding helpers ────────────────────────────────
@@ -128,7 +139,12 @@ const Auth = (() => {
     });
   }
 
-  return { init, getUser, isLoggedIn, login, register, logout, bindLoginForm, bindRegisterForm };
+  // Expose updateHeaderUI for external calls (e.g., after avatar update)
+  function updateHeaderUI(user) {
+    if (user) _renderLoggedIn(user);
+  }
+
+  return { init, getUser, isLoggedIn, login, register, logout, bindLoginForm, bindRegisterForm, updateHeaderUI };
 })();
 
 window.Auth = Auth;

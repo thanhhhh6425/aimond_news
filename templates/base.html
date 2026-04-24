@@ -38,24 +38,34 @@
         <li><a href="/players"    {% if '/players' in request.path %}class="active"{% endif %}>Players</a></li>
         <li><a href="/clubs"      {% if '/clubs' in request.path %}class="active"{% endif %}>Clubs</a></li>
       </ul>
+
+      <!-- Auth buttons for mobile (inside hamburger menu) -->
+      <div class="auth-mobile">
+        <div class="auth-logged-out" style="display:flex; flex-direction:column; gap:12px; margin-top:20px;">
+          <a href="/login"    class="btn-header-login" style="display:flex; justify-content:center;">Đăng nhập</a>
+          <a href="/register" class="btn-header-register" style="display:flex; justify-content:center;">Đăng ký</a>
+        </div>
+        <div class="auth-logged-in hidden" style="display:flex; flex-direction:column; gap:12px; margin-top:20px;">
+          <a href="/profile" style="display:flex; align-items:center; gap:12px; color:white; justify-content:center;">
+            <div style="width:36px;height:36px;border-radius:50%;background:var(--color-surface-3);border:2px solid var(--color-accent);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;">
+              <img data-user-avatar src="" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;">
+              <span data-user-name style="font-size:14px; font-weight:800;">U</span>
+            </div>
+            <span>Hồ sơ</span>
+          </a>
+          <button onclick="Auth.logout()" class="btn-header-login" style="justify-content:center;">Đăng xuất</button>
+        </div>
+      </div>
     </nav>
 
-    <div class="header-right" style="display:flex; align-items:center;">
+    <div class="header-right">
 
-      <div class="league-toggle" role="group" aria-label="League selector" style="margin-right:15px;">
-        <button class="league-toggle-btn active"
-                data-league-toggle="PL"
-                aria-pressed="true"
-                title="Premier League"
-                style="display:flex; align-items:center; justify-content:center;">
-          <img src="/static/images/pl-logo.png" alt="Premier League" width="22" height="22" style="object-fit:contain;">
+      <div class="league-toggle" role="group" aria-label="League selector">
+        <button class="league-toggle-btn active" data-league-toggle="PL" aria-pressed="true" title="Premier League">
+          <img src="/static/images/pl-logo.png" alt="Premier League" width="22" height="22">
         </button>
-        <button class="league-toggle-btn"
-                data-league-toggle="UCL"
-                aria-pressed="false"
-                title="UEFA Champions League"
-                style="display:flex; align-items:center; justify-content:center;">
-          <img src="/static/images/ucl-logo.png" alt="Champions League" width="22" height="22" style="object-fit:contain;">
+        <button class="league-toggle-btn" data-league-toggle="UCL" aria-pressed="false" title="UEFA Champions League">
+          <img src="/static/images/ucl-logo.png" alt="Champions League" width="22" height="22">
         </button>
       </div>
 
@@ -65,22 +75,22 @@
         </svg>
       </button>
 
-      <div class="auth-logged-out flex gap-sm" style="display:flex; align-items:center; margin-left: 10px;">
-        <a href="/login"    class="btn-header-login" style="display:flex; align-items:center; justify-content:center; box-sizing:border-box; line-height:1;">Đăng nhập</a>
-        <a href="/register" class="btn-header-register" style="display:flex; align-items:center; justify-content:center; box-sizing:border-box; line-height:1;">Đăng ký</a>
+      <div class="auth-logged-out flex gap-sm" style="display:flex; align-items:center;">
+        <a href="/login"    class="btn-header-login">Đăng nhập</a>
+        <a href="/register" class="btn-header-register">Đăng ký</a>
       </div>
 
-      <div class="auth-logged-in hidden flex gap-sm" style="display:flex; align-items:center; margin-left: 10px;">
+      <div class="auth-logged-in hidden flex gap-sm" style="display:flex; align-items:center;">
         <a href="/profile" style="display:flex;align-items:center;gap:8px;color:white">
-          <div style="width:32px;height:32px;border-radius:50%;background:var(--color-surface-3);border:2px solid var(--color-accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:900;color:var(--color-accent);transition:all .3s;position:relative;overflow:hidden; box-sizing:border-box;">
-            <img data-user-avatar src="" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:1;">
-            <span data-user-name style="font-size:12px; line-height:1; display:flex; align-items:center; justify-content:center; width:100%; height:100%; z-index:0; margin:0; padding:0;">U</span>
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--color-surface-3);border:2px solid var(--color-accent);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;">
+            <img data-user-avatar src="" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;">
+            <span data-user-name style="font-size:12px; font-weight:800;">U</span>
           </div>
         </a>
-        <button onclick="Auth.logout()" class="btn-header-login" style="font-size:.75rem; display:flex; align-items:center; justify-content:center; box-sizing:border-box; line-height:1;">Logout</button>
+        <button onclick="Auth.logout()" class="btn-header-login" style="font-size:.75rem;">Logout</button>
       </div>
 
-      <button class="header-hamburger" aria-label="Menu" aria-expanded="false" style="margin-left: 10px;">
+      <button class="header-hamburger" aria-label="Menu" aria-expanded="false">
         <span></span><span></span><span></span>
       </button>
     </div>

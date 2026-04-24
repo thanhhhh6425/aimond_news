@@ -1,5 +1,5 @@
 """
-setup_ucl_playoff.py - Chi restore UCL playoff (mw=9) tu FotMob
+setup_ucl_playoff.py
 """
 import sys, os, logging
 from datetime import datetime, timezone

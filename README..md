@@ -88,11 +88,7 @@ pip install -r requirements.txt
 
 ---
 
-## Chạy Ứng Dụng
 
-```bash
-python run.py
-```
 
 Mở trình duyệt: **http://localhost:5000**
 
@@ -149,6 +145,12 @@ python crawl_news.py
 ```
 
 > **Lưu ý:** Quá trình crawl toàn bộ có thể mất 5–15 phút tuỳ tốc độ mạng. Đảm bảo kết nối internet ổn định trước khi chạy.
+
+## Chạy Ứng Dụng
+
+```bash
+python run.py
+```
 
 ### Cập Nhật Tự Động (Scheduler)
 
